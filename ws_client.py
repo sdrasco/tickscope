@@ -2,7 +2,7 @@
 ws_client.py
 
 WebSocket client for fetching live price data from Polygon.io.
-Supports dynamic ticker changes.
+Fetches real-time trade events for a single, command-line defined ticker.
 """
 
 import asyncio
@@ -10,7 +10,7 @@ import json
 import websockets
 from config import POLYGON_API_KEY, WS_ENDPOINT
 from exchange_mapping import EXCHANGE_MAPPING
-import charts  # Import charts to call update_price_chart()
+import charts  # Using the OOP-style charts module.
 from datetime import datetime
 
 # Global variable to hold the current ticker symbol (without the "T." prefix).
@@ -30,16 +30,16 @@ async def connect():
         await websocket.send(json.dumps(auth_message))
         print("Sent authentication message.")
         
-        # Wait for authentication response
+        # Wait for authentication response.
         auth_response = await websocket.recv()
         print("Authentication response:", auth_response)
         
-        # Step 2: Subscribe to the current ticker trade events channel
+        # Step 2: Subscribe to the current ticker's trade events channel.
         subscribe_message = {"action": "subscribe", "params": f"T.{current_ticker}"}
         await websocket.send(json.dumps(subscribe_message))
         print(f"Subscribed to T.{current_ticker} channel.")
         
-        # Step 3: Listen for incoming messages and process them
+        # Step 3: Listen for incoming messages and process them.
         while True:
             try:
                 message = await websocket.recv()
@@ -56,13 +56,9 @@ async def connect():
 def process_message(message):
     """
     Process an individual message from the WebSocket.
-    For trade events (ev == "T"), update the live price using charts.update_price_chart().
+    For trade events (ev == "T"), update the live price using charts.update_price_doc().
     """
     if message.get("ev") == "T":  # Trade event
-        # Extract and map exchange ID to a human-readable name.
-        exchange_id = message.get("x")
-        exchange_name = EXCHANGE_MAPPING.get(exchange_id, f"ID {exchange_id}")
-        
         # Extract trade size, price, and timestamp.
         try:
             size = int(message.get("s", 0))
@@ -83,35 +79,17 @@ def process_message(message):
         else:
             trade_time = datetime.now()
         
-        # Update the live price in the Bokeh chart using price, trade_time, and trade size.
-        charts.update_price_chart(price, trade_time, size)
+        # Update the live price chart.
+        if charts.bokeh_doc is not None:
+            charts.bokeh_doc.add_next_tick_callback(
+                lambda: charts.update_price_doc(price, trade_time, size)
+            )
+        #else:
+            # Bokeh document is not yet available; update is skipped or could be queued.
+            #print("Bokeh document not yet available; update skipped.")
     else:
         # Optionally handle non-trade events.
         pass
-
-def change_ticker(new_ticker):
-    """
-    Change the current ticker subscription.
-    If connected, unsubscribe from the current ticker and subscribe to the new one.
-    
-    Parameters:
-        new_ticker (str): The new ticker symbol (e.g., "AAPL").
-    """
-    global ws_connection, current_ticker, ws_loop
-    from asyncio import run_coroutine_threadsafe
-
-    # If there's an active connection, send an unsubscribe for the current ticker.
-    if ws_connection is not None and ws_loop is not None:
-        unsubscribe_message = {"action": "unsubscribe", "params": f"T.{current_ticker}"}
-        run_coroutine_threadsafe(ws_connection.send(json.dumps(unsubscribe_message)), ws_loop)
-        print(f"Unsubscribed from T.{current_ticker}.")
-    # Update the global ticker variable.
-    current_ticker = new_ticker
-    # If connected, subscribe to the new ticker.
-    if ws_connection is not None and ws_loop is not None:
-        subscribe_message = {"action": "subscribe", "params": f"T.{current_ticker}"}
-        run_coroutine_threadsafe(ws_connection.send(json.dumps(subscribe_message)), ws_loop)
-        print(f"Subscribed to T.{current_ticker} channel.")
 
 def start_ws_client():
     asyncio.run(connect())

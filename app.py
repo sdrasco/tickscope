@@ -2,139 +2,110 @@
 app.py
 
 Main entry point for Tickscope.
-Initializes the Dash app, sets the layout,
-starts the background WebSocket client, and runs the Bokeh server.
+Initializes Dash app with Bokeh charts embedded via iframe,
+starts WebSocket client and Bokeh server.
 """
 
+import sys
 import threading
-from dash import Dash
-from layout import create_layout
+from dash import Dash, html
 import ws_client
-from flask import Response, request
+from flask import Response
 from tornado.ioloop import IOLoop
 from bokeh.server.server import Server
-from charts import modify_doc, reset_chart  # Import reset_chart as well
-from flask import render_template_string
-from dash.dependencies import Input, Output, State
-import requests
+from bokeh.embed import server_document
+from charts import (
+    modify_price_doc,
+    modify_speed_doc,
+    modify_acceleration_doc,
+    modify_price_pdf_doc,
+    modify_volume_pdf_doc,
+    modify_exchange_hist_doc
+)
 
-# Initialize the Dash app
+# Determine ticker from command-line argument; default to TSLA.
+default_ticker = "TSLA"
+ticker = sys.argv[1].upper() if len(sys.argv) > 1 else default_ticker
+
+# Update the ws_client's current ticker.
+ws_client.current_ticker = ticker
+
+# Initialize Dash app and expose Flask server.
 app = Dash(__name__)
-app.layout = create_layout(app)   # Sets the layout (which now includes the Ticker input, header, and buttons)
-server = app.server  # Expose the underlying Flask server
+server = app.server
 
 # Start the Bokeh server in a background thread.
 def bk_worker():
-    """
-    Starts the Bokeh server to serve the live Bokeh app at '/bkapp'.
-    """
     io_loop = IOLoop()
     bokeh_server = Server(
-        {'/bkapp': modify_doc},
+        {
+            '/bokeh/price': modify_price_doc,
+            '/bokeh/speed': modify_speed_doc,
+            '/bokeh/acceleration': modify_acceleration_doc,
+            '/bokeh/price_pdf': modify_price_pdf_doc,
+            '/bokeh/volume_pdf': modify_volume_pdf_doc,
+            '/bokeh/exchange_hist': modify_exchange_hist_doc,
+        },
         io_loop=io_loop,
-        allow_websocket_origin=["localhost:8050"],
-        port=5006  # Change this port if needed
+        allow_websocket_origin=["localhost:8050", "localhost:5006"],
+        port=5006
     )
     bokeh_server.start()
     io_loop.start()
 
 threading.Thread(target=bk_worker, daemon=True).start()
 
-@server.route('/bokeh')
-def bkapp_page():
-    """
-    Returns an HTML page that embeds the live Bokeh app.
-    This uses Bokeh's server_document to generate the necessary script.
-    """
-    from bokeh.embed import server_document
-    # Generate the script to connect to the live Bokeh session.
-    script = server_document("http://localhost:5006/bkapp")
-    html = f"""
+# Flask route to serve embedded Bokeh apps via iframe.
+@server.route('/bokeh/<chart_id>')
+def bkapp_page(chart_id):
+    script = server_document(f"http://localhost:5006/bokeh/{chart_id}")
+    html_page = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
-      <meta charset="UTF-8">
-      <title>Tickscope Bokeh Chart</title>
+        <meta charset="UTF-8">
+        <title>TickScope Bokeh Chart - {chart_id}</title>
+        <style>
+            html, body {{ margin:0; padding:0; overflow:hidden; }}
+        </style>
     </head>
     <body>
-      {script}
+        {script}
     </body>
     </html>
     """
-    return Response(html, mimetype='text/html')
+    return Response(html_page, mimetype='text/html')
+    
+# Dash layout generation embedding Bokeh via iframe.
+def generate_layout():
+    iframe_src = "/bokeh/price"
+    return html.Div([
+        html.H1(
+            f"TickScope: {ticker}",
+            style={"text-align": "center", "font-family": "Helvetica, sans-serif"}
+        ),
+        html.Iframe(
+            src="/bokeh/price",
+            style={
+                "width": "100%",
+                "height": "300px",
+                "border": "none",
+                "background-color": "red",
+                "box-sizing": "border-box",
+                "overflow": "hidden"
+            }
+        )
+    ], style={"width": "100%", "box-sizing": "border-box"})
 
-@server.route('/reset_chart')
-def reset_chart_route():
-    """
-    Flask route to reset the chart.
-    """
-    reset_chart()
-    return "Chart reset", 200
+app.layout = generate_layout()
 
-@server.route('/change_ticker')
-def change_ticker_route():
-    """
-    Flask route to change the ticker symbol.
-    Expects a query parameter 'ticker'. Defaults to 'TSLA' if not provided.
-    Calls a function in ws_client to update the subscription.
-    """
-    new_ticker = request.args.get("ticker", "TSLA")
-    ws_client.change_ticker(new_ticker)
-    return "Ticker changed", 200
-
-# Dash callback for the reset button.
-@app.callback(
-    Output("reset-status", "children"),
-    [Input("reset-chart-button", "n_clicks")]
-)
-def reset_chart_callback(n_clicks):
-    if n_clicks and n_clicks > 0:
-        try:
-            r = requests.get("http://127.0.0.1:8050/reset_chart")
-            if r.status_code == 200:
-                return "Chart reset"
-            else:
-                return "Reset failed"
-        except Exception as e:
-            return f"Error: {e}"
-    return ""
-
-# Dash callback for the Change Ticker button.
-# This callback updates two outputs:
-# 1. The ticker status message (in "ticker-status").
-# 2. A large header displaying the current ticker (in "current-ticker-header").
-@app.callback(
-    [Output("ticker-status", "children"),
-     Output("current-ticker-header", "children")],
-    [Input("change-ticker-button", "n_clicks")],
-    [State("ticker-input", "value")]
-)
-def change_ticker_callback(n_clicks, ticker):
-    if n_clicks and ticker:
-        try:
-            r = requests.get(f"http://127.0.0.1:8050/change_ticker?ticker={ticker}")
-            if r.status_code == 200:
-                status_msg = f"Ticker changed to {ticker}"
-                header_msg = f"Current Ticker: {ticker.upper()}"
-                return status_msg, header_msg
-            else:
-                return "Ticker change failed", ""
-        except Exception as e:
-            return f"Error: {e}", ""
-    # On startup, we default to TSLA.
-    return "", "Current Ticker: TSLA"
-
+# Start WebSocket client for real-time data.
 def start_websocket_client():
-    """
-    Start the WebSocket client in a separate thread.
-    This will fetch live data from Polygon.io and update the chart.
-    """
     ws_client.start_ws_client()
 
 if __name__ == '__main__':
-    # Start the WebSocket client in a background thread.
     ws_thread = threading.Thread(target=start_websocket_client, daemon=True)
     ws_thread.start()
-    
-    # Run the Dash server with the reloader disabled to prevent duplicate threads.
+
+    # Run Dash server
     app.run_server(debug=True, use_reloader=False)
