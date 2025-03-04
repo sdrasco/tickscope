@@ -1,48 +1,58 @@
-<p align="center">
-  <img src="docs/images/tickscope_small_logo.png" alt="Tickscope Logo">
+<img src="docs/images/tickscope_small_logo.png" alt="Tickscope Logo">
 </p>
 
 ## Tickscope
 
-Tickscope is a Python-based web application for monitoring live trading data in real time. It leverages Dash for the user interface, Bokeh for interactive charting, and websockets to stream live data from Polygon.io.
+Tickscope is a simple Python-based web application for monitoring live trading data in real-time.  The aim is that this tool should be used to monitor real-time happenings for a stock and option contact in a way similar to the way that an scope is used in electronics: the tool just streams the data.  You do with it what you want. The tool is new.  Currently it supports simultaneous monitoring real-time data from two web sockets for trades of a single stock and a single option contract, like in the screenshot below.
 
-It’s for those who think standard trading charts aren’t quite obsessive enough. If you’ve ever wanted to see every single trade—yes, every last one—this is for you. Most people probably don’t, but that’s fine, we’re not here for them. Just be aware that you’ll need a **Polygon.io "Stocks Advanced" subscription** for this to work properly. Without it, Tickscope is essentially a very enthusiastic but uninformed chart.
+![Tickscope Dual Charts](docs/images/dualchart.png)
+
+If you're someone who loves detailed market data (perhaps more than most), Tickscope is being built for you. Keep in mind you'll need a **Polygon.io "Stocks Advanced" and "Options Advanced" subscription** for full functionality. Without this, Tickscope is enthusiastic but not particularly useful.
 
 ## Project Progress Highlights
 
-- **2025-02-19**: The thing works. You can now watch trades roll in one by one. Try not to get hypnotized.
+- 2025-03-04: You can now see option contract trades as well.
+- 2025-02-19: The thing works. You can now watch stock trades roll in one by one. Try not to get hypnotized.
+
 
 ## Running Tickscope
 
-1. **Clone the Repository:**
+### Requirements
+- Python 3.8+
+- Polygon.io API key with a **"Stocks Advanced" and "Options Advanced" subscription**
+
+## Quickstart
+
+1. **Clone and enter the repo:**
    ```sh
-   git clone https://github.com/yourusername/tickscope.git
+   git clone <repo-url>
    cd tickscope
    ```
-2. **Create and Activate a Virtual Environment:**
+
+2. **Setup Python environment:**
    ```sh
    python -m venv venv
    source venv/bin/activate    # On macOS/Linux
    venv\Scripts\activate       # On Windows
    ```
-3. **Install the Dependencies:**
+
+3. **Install dependencies:**
    ```sh
    pip install -r requirements.txt
    ```
-4. **Edit Configuration:**
-   Update `config.py` with your Polygon.io API key:
-   ```python
-   POLYGONIO_API_KEY = "your_api_key_here"
-   WS_ENDPOINT = "wss://socket.polygon.io/stocks"
-   ```
-   Remember, **you need a "Stocks Advanced" subscription on Polygon.io** for this to function properly. Otherwise, enjoy a blank chart.
 
-5. **Start the Application:**
+4. **Configure Polygon.io API:**
+   Make sure your Polygon.io API key is set as an environment variable (`POLYGONIO_API_KEY`).
+
+   **Subscriptions Required:**
+   - Stocks Advanced
+   - Options Advanced
+
+5. **Run the app:**
    ```sh
-   python app.py
+   python app.py TSLA TSLA250404P00200000
    ```
-   Then open your browser and navigate to [http://localhost:8050](http://localhost:8050).
 
-## License
+Then open your browser and navigate to [http://localhost:8050](http://localhost:8050).
 
-This project is licensed under the MIT License.
+Enjoy your detailed trading insights!
