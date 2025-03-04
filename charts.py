@@ -1,10 +1,18 @@
-# charts.py
+"""
+charts.py
+
+Contains Bokeh chart classes and server integration functions
+for real-time plotting of stock and option prices in Tickscope.
+"""
 
 import math
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, Range1d
-from tornado.ioloop import IOLoop
 from datetime import datetime
+
+# Global references for Bokeh documents
+bokeh_doc = None
+bokeh_doc_option = None
 
 # -------------------------------
 # Base Chart Class
@@ -75,7 +83,7 @@ class BaseChart:
 
 class PriceChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="price ($)", **kwargs)
+        super().__init__(y_axis_label="Stock Price ($)", **kwargs)
 
     def create_figure(self):
         fig = super().create_figure()
@@ -85,39 +93,27 @@ class PriceChart(BaseChart):
         )
         return fig
 
-class SpeedChart(BaseChart):
+class OptionPriceChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="speed ($/s)", **kwargs)
+        super().__init__(y_axis_label="Option Price ($)", **kwargs)
 
-class AccelerationChart(BaseChart):
-    def __init__(self, **kwargs):
-        super().__init__(y_axis_label="acceleration ($/s²)", **kwargs)
-
-class PricePDFChart(BaseChart):
-    def __init__(self, **kwargs):
-        super().__init__(x_axis_label="price ($)", **kwargs)
-
-class VolumePDFChart(BaseChart):
-    def __init__(self, **kwargs):
-        super().__init__(x_axis_label="volume (shares)", **kwargs)
-
-class ExchangeHistChart(BaseChart):
-    def __init__(self, **kwargs):
-        super().__init__(x_axis_label="exchange (id)", **kwargs)
+    def create_figure(self):
+        fig = super().create_figure()
+        fig.scatter(
+            x="time", y="price", source=self.source,
+            size=8, color="green", alpha="alpha"
+        )
+        return fig
 
 # -------------------------------
 # Integration Functions for Bokeh Server
 # -------------------------------
 
-bk_io_loop = None
-bokeh_doc = None
-
 def modify_price_doc(doc):
-    global bk_io_loop, bokeh_doc
-    bk_io_loop = IOLoop.current()
+    global bokeh_doc
     bokeh_doc = doc
 
-    price_chart = PriceChart(toolbar_location=None)
+    price_chart = PriceChart()
     fig = price_chart.create_figure()
     doc.clear()
     doc.add_root(fig)
@@ -128,42 +124,17 @@ def update_price_doc(new_price, timestamp, trade_size):
     if hasattr(bokeh_doc, "chart_obj"):
         bokeh_doc.chart_obj.update_chart(new_price, timestamp, trade_size)
 
-def modify_speed_doc(doc):
-    speed_chart = SpeedChart(toolbar_location=None)
-    fig = speed_chart.create_figure()
+def modify_option_price_doc(doc):
+    global bokeh_doc_option
+    bokeh_doc_option = doc
+
+    option_chart = OptionPriceChart()
+    fig = option_chart.create_figure()
     doc.clear()
     doc.add_root(fig)
-    doc.chart_obj = speed_chart
+    doc.chart_obj = option_chart
     return doc
 
-def modify_acceleration_doc(doc):
-    acceleration_chart = AccelerationChart(toolbar_location=None)
-    fig = acceleration_chart.create_figure()
-    doc.clear()
-    doc.add_root(fig)
-    doc.chart_obj = acceleration_chart
-    return doc
-
-def modify_price_pdf_doc(doc):
-    price_pdf_chart = PricePDFChart(toolbar_location=None)
-    fig = price_pdf_chart.create_figure()
-    doc.clear()
-    doc.add_root(fig)
-    doc.chart_obj = price_pdf_chart
-    return doc
-
-def modify_volume_pdf_doc(doc):
-    volume_pdf_chart = VolumePDFChart(toolbar_location=None)
-    fig = volume_pdf_chart.create_figure()
-    doc.clear()
-    doc.add_root(fig)
-    doc.chart_obj = volume_pdf_chart
-    return doc
-
-def modify_exchange_hist_doc(doc):
-    exchange_hist_chart = ExchangeHistChart(toolbar_location=None)
-    fig = exchange_hist_chart.create_figure()
-    doc.clear()
-    doc.add_root(fig)
-    doc.chart_obj = exchange_hist_chart
-    return doc
+def update_option_price_doc(new_price, timestamp, trade_size):
+    if hasattr(bokeh_doc_option, "chart_obj"):
+        bokeh_doc_option.chart_obj.update_chart(new_price, timestamp, trade_size)
