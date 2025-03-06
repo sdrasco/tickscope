@@ -34,3 +34,12 @@ def parse_ticker(ticker):
             "type": "stock",
             "symbol": ticker
         }
+
+def extract_stock_from_option(option_ticker):
+    """
+    Extracts and returns the underlying stock ticker from a given option ticker.
+    """
+    parsed = parse_ticker(option_ticker)
+    if parsed["type"] == "option":
+        return parsed["underlying"]
+    raise ValueError(f"Provided ticker '{option_ticker}' is not a valid option ticker.")

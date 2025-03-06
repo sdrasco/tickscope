@@ -3,7 +3,7 @@
 
 ## Tickscope
 
-Tickscope is a simple Python-based web application for monitoring live trading data in real-time.  The aim is that this tool should be used to monitor real-time happenings for a stock and option contact in a way similar to the way that an scope is used in electronics: the tool just streams the data.  You do with it what you want. The tool is new.  Currently it supports simultaneous monitoring real-time data from two web sockets for trades of a single stock and a single option contract, like in the screenshot below.
+Tickscope is a simple Python-based web application for monitoring live trading data in real-time. Inspired by an oscilloscope used in electronics, Tickscope streams detailed real-time data for a single option contract along with its underlying stock, providing insights for the discerning trader. The tool supports simultaneous monitoring of real-time trade data via web sockets, as illustrated in the screenshot below.
 
 ![Tickscope Dual Charts](docs/images/dualchart.png)
 
@@ -11,9 +11,9 @@ If you're someone who loves detailed market data (perhaps more than most), Ticks
 
 ## Project Progress Highlights
 
-- 2025-03-04: You can now see option contract trades as well.
-- 2025-02-19: The thing works. You can now watch stock trades roll in one by one. Try not to get hypnotized.
-
+- **2025-03-06**: Added Bid-Ask Spread and Volume Heartbeat charts (so three charts for underlying, and three for option contract).
+- **2025-03-04**: You can now see option contract trades as well.
+- **2025-02-19**: The thing works. You can now watch stock trades roll in one by one. Try not to get hypnotized.
 
 ## Running Tickscope
 
@@ -48,11 +48,23 @@ If you're someone who loves detailed market data (perhaps more than most), Ticks
    - Stocks Advanced
    - Options Advanced
 
-5. **Run the app:**
+5. **Run the app (example):**
    ```sh
-   python app.py TSLA TSLA250404P00200000
+   python app.py TSLA250404P00200000
    ```
 
 Then open your browser and navigate to [http://localhost:8050](http://localhost:8050).
 
-Enjoy your detailed trading insights!
+### Generating the Option Ticker
+Option tickers follow this format:
+```
+<Underlying><Expiration><Type><Strike>
+```
+Example breakdown:
+- **Underlying**: TSLA (Tesla)
+- **Expiration**: YYMMDD (e.g., 250404 for April 4, 2025)
+- **Type**: C for Call, P for Put
+- **Strike**: 8 digits, strike price × 1000 (e.g., $200 → 00200000)
+
+A small widget to easily generate these tickers will be added soon.
+

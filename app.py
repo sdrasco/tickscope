@@ -3,7 +3,7 @@ app.py
 
 Main entry point for Tickscope.
 Initializes Dash app with embedded Bokeh charts for stock and option prices,
-starts WebSocket clients and Bokeh server.
+bid-ask spread, and volume heartbeat charts, starts WebSocket clients and Bokeh server.
 """
 
 import sys
@@ -14,14 +14,21 @@ from flask import Response
 from tornado.ioloop import IOLoop
 from bokeh.server.server import Server
 from bokeh.embed import server_document
-from charts import modify_price_doc, modify_option_price_doc
+from charts import (
+    modify_price_doc,
+    modify_option_price_doc,
+    modify_stock_bidask_doc,
+    modify_option_bidask_doc,
+    modify_stock_volume_doc,
+    modify_option_volume_doc
+)
+from utils import extract_stock_from_option
 
-# Get tickers from command-line arguments; defaults provided
-default_stock_ticker = "TSLA"
-default_option_ticker = "TSLA240315C00220000"
+# Determine tickers from command-line argument; provide default
+DEFAULT_OPTION_TICKER = "TSLA240315C00220000"
 
-stock_ticker = sys.argv[1].upper() if len(sys.argv) > 1 else default_stock_ticker
-option_ticker = sys.argv[2].upper() if len(sys.argv) > 2 else default_option_ticker
+option_ticker = sys.argv[1].upper() if len(sys.argv) > 1 else DEFAULT_OPTION_TICKER
+stock_ticker = extract_stock_from_option(option_ticker)
 
 # Update ws_client tickers
 ws_client.stock_ticker = stock_ticker
@@ -31,17 +38,24 @@ ws_client.option_ticker = option_ticker
 app = Dash(__name__)
 server = app.server
 
-# Start Bokeh server in a background thread with two chart endpoints
+# Start Bokeh server with all charts in a background thread
 def bk_worker():
     io_loop = IOLoop()
     bokeh_server = Server(
         {
             '/bokeh/stock_price': modify_price_doc,
             '/bokeh/option_price': modify_option_price_doc,
+            '/bokeh/stock_bidask': modify_stock_bidask_doc,
+            '/bokeh/option_bidask': modify_option_bidask_doc,
+            '/bokeh/stock_volume': modify_stock_volume_doc,
+            '/bokeh/option_volume': modify_option_volume_doc,
         },
         io_loop=io_loop,
         allow_websocket_origin=["localhost:8050", "localhost:5006"],
-        port=5006
+        port=5006,
+        websocket_max_message_size=10000000,
+        show=False,
+        dev=False
     )
     bokeh_server.start()
     io_loop.start()
@@ -57,7 +71,7 @@ def bkapp_page(chart_id):
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>TickScope Chart - {chart_id}</title>
+        <title>Tickscope Chart - {chart_id}</title>
         <style>
             html, body {{ margin:0; padding:0; overflow:hidden; }}
         </style>
@@ -69,47 +83,32 @@ def bkapp_page(chart_id):
     """
     return Response(html_page, mimetype='text/html')
 
-# Dash layout with side-by-side embedded Bokeh charts
+# Dash layout embedding all Bokeh charts side-by-side
 def generate_layout():
     return html.Div([
         html.H1(
-            f"TickScope: {stock_ticker} & {option_ticker}",
+            f"Tickscope: {stock_ticker} & {option_ticker}",
             style={"text-align": "center", "font-family": "Helvetica, sans-serif"}
         ),
+
         html.Div([
             html.Div([
-                html.H3(f"Stock: {stock_ticker}", style={"text-align": "center"}),
-                html.Iframe(
-                    src="/bokeh/stock_price",
-                    style={
-                        "width": "100%",
-                        "height": "300px",
-                        "border": "none",
-                        "box-sizing": "border-box",
-                        "overflow": "hidden"
-                    }
-                ),
-            ], style={"width": "50%", "display": "inline-block", "padding": "5px"}),
-
+                html.Iframe(src="/bokeh/stock_price", style={"width": "100%", "height": "250px", "border": "none"}),
+                html.Iframe(src="/bokeh/stock_bidask", style={"width": "100%", "height": "250px", "border": "none"}),
+                html.Iframe(src="/bokeh/stock_volume", style={"width": "100%", "height": "250px", "border": "none"}),
+            ], style={"width": "50%", "padding": "5px", "display": "inline-block"}),
+            
             html.Div([
-                html.H3(f"Option: {option_ticker}", style={"text-align": "center"}),
-                html.Iframe(
-                    src="/bokeh/option_price",
-                    style={
-                        "width": "100%",
-                        "height": "300px",
-                        "border": "none",
-                        "box-sizing": "border-box",
-                        "overflow": "hidden"
-                    }
-                ),
+                html.Iframe(src="/bokeh/option_price", style={"width": "100%", "height": "250px", "border": "none"}),
+                html.Iframe(src="/bokeh/option_bidask", style={"width": "100%", "height": "250px", "border": "none"}),
+                html.Iframe(src="/bokeh/option_volume", style={"width": "100%", "height": "250px", "border": "none"}),
             ], style={"width": "50%", "display": "inline-block", "padding": "5px"}),
         ], style={"display": "flex", "justify-content": "space-between"})
-    ], style={"width": "100%", "box-sizing": "border-box"})
+    ])
 
 app.layout = generate_layout()
 
-# Start WebSocket client for real-time data (stock & option)
+# Start WebSocket clients for real-time data
 def start_websocket_clients():
     ws_client.start_ws_client(stock_ticker, option_ticker)
 
