@@ -22,13 +22,20 @@ from charts import (
     modify_stock_volume_doc,
     modify_option_volume_doc
 )
-from utils import extract_stock_from_option
+from utils import extract_stock_from_option, parse_ticker
+from datetime import datetime
 
 # Determine tickers from command-line argument; provide default
 DEFAULT_OPTION_TICKER = "TSLA240315C00220000"
 
 option_ticker = sys.argv[1].upper() if len(sys.argv) > 1 else DEFAULT_OPTION_TICKER
 stock_ticker = extract_stock_from_option(option_ticker)
+
+# Parse option details for human-readable title
+option_details = parse_ticker(option_ticker)
+option_type = option_details["option_type"].capitalize()
+strike_price = option_details["strike_price"]
+exp_date = datetime.strptime(option_details["expiration"], "%y%m%d").strftime("%d %B %Y")
 
 # Update ws_client tickers
 ws_client.stock_ticker = stock_ticker
@@ -87,7 +94,7 @@ def bkapp_page(chart_id):
 def generate_layout():
     return html.Div([
         html.H1(
-            f"Tickscope: {stock_ticker} & {option_ticker}",
+            f"Tickscope: {stock_ticker} {option_type} at {strike_price:g} expiring {exp_date}",
             style={"text-align": "center", "font-family": "Helvetica, sans-serif"}
         ),
 
@@ -117,4 +124,4 @@ if __name__ == '__main__':
     ws_thread.start()
 
     # Run Dash server
-    app.run_server(debug=True, use_reloader=False)
+    app.run_server(debug=False, use_reloader=False)

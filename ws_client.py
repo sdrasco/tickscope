@@ -3,6 +3,7 @@ ws_client.py
 
 WebSocket client fetching live stock and option data (trades and quotes) from Polygon.io.
 Supports real-time charts for price, bid-ask spread, and volume heartbeat.
+Enhanced with debugging logs.
 """
 
 import asyncio
@@ -18,11 +19,14 @@ option_ticker = "TSLA240315C00220000"
 
 async def connect_stock():
     async with websockets.connect(STOCK_WS_ENDPOINT) as websocket:
+        print(f"[Stock WS] Connecting to {STOCK_WS_ENDPOINT}")
         await websocket.send(json.dumps({"action": "auth", "params": POLYGON_API_KEY}))
-        await websocket.recv()  # Auth response
+        auth_response = await websocket.recv()
+        print(f"[Stock WS] Auth response: {auth_response}")
 
         subscribe_message = {"action": "subscribe", "params": f"T.{stock_ticker},Q.{stock_ticker}"}
         await websocket.send(json.dumps(subscribe_message))
+        print(f"[Stock WS] Subscribed to {stock_ticker} trades and quotes.")
 
         while True:
             try:
@@ -31,16 +35,37 @@ async def connect_stock():
                 for item in data:
                     process_stock_message(item)
             except websockets.exceptions.ConnectionClosed:
+                print("[Stock WS] Connection closed.")
                 break
 
 async def connect_option():
     async with websockets.connect(OPTION_WS_ENDPOINT) as websocket:
-        await websocket.send(json.dumps({"action": "auth", "params": POLYGON_API_KEY}))
-        await websocket.recv()  # Auth response
+        print(f"[Option WS] Connecting to {OPTION_WS_ENDPOINT}")
 
-        subscribe_message = {"action": "subscribe", "params": f"T.O:{option_ticker},Q.O:{option_ticker}"}
+        # Authenticate
+        await websocket.send(json.dumps({"action": "auth", "params": POLYGON_API_KEY}))
+
+        # Wait explicitly until auth_success message arrives
+        while True:
+            auth_response = await websocket.recv()
+            print(f"[Option WS] Auth response: {auth_response}")
+            auth_data = json.loads(auth_response)
+            if any(item.get('status') == 'auth_success' for item in auth_data):
+                print("[Option WS] Authenticated successfully.")
+                break
+
+        # Corrected subscription format here:
+        subscribe_message = {
+            "action": "subscribe",
+            "params": f"T.O:{option_ticker},Q.O:{option_ticker}"
+        }
         await websocket.send(json.dumps(subscribe_message))
 
+        # Confirm subscription explicitly
+        subscribe_response = await websocket.recv()
+        print(f"[Option WS] Subscribe response: {subscribe_response}")
+
+        # Handle incoming messages
         while True:
             try:
                 message = await websocket.recv()
@@ -48,12 +73,13 @@ async def connect_option():
                 for item in data:
                     process_option_message(item)
             except websockets.exceptions.ConnectionClosed:
+                print("[Option WS] Connection closed.")
                 break
 
 def process_stock_message(message):
     ev = message.get("ev")
     timestamp = int(message.get("t", 0))
-    event_time = datetime.fromtimestamp(timestamp / 1000.0) if (timestamp := message.get("t")) else datetime.now()
+    event_time = datetime.fromtimestamp(timestamp / 1000.0) if timestamp else datetime.now()
 
     if ev == "T":
         price = float(message.get("p", 0.0))
@@ -77,11 +103,13 @@ def process_stock_message(message):
 
 def process_option_message(message):
     ev = message.get("ev")
-    event_time = datetime.fromtimestamp(message.get("t", 0)/1000.0) if message.get("t") else datetime.now()
+    timestamp = int(message.get("t", 0))
+    event_time = datetime.fromtimestamp(timestamp / 1000.0) if timestamp else datetime.now()
 
     if ev == "T":
         price = float(message.get("p", 0.0))
         size = int(message.get("s", 0))
+        #print(f"[Option Trade] Price: {price}, Size: {size}, Time: {event_time}")
         if charts.bokeh_docs['option_price']:
             charts.bokeh_docs['option_price'].add_next_tick_callback(
                 lambda: charts.update_option_price_doc(price, event_time, size)
