@@ -74,7 +74,7 @@ class BaseChart:
 
 class PriceChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="Stock Price ($)", **kwargs)
+        super().__init__(y_axis_label="Traded Stock Price ($)", **kwargs)
 
     def create_figure(self):
         fig = super().create_figure()
@@ -89,7 +89,7 @@ class PriceChart(BaseChart):
 
 class OptionPriceChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="Option Price ($)", **kwargs)
+        super().__init__(y_axis_label="Traded Option Premium ($)", **kwargs)
 
     def create_figure(self):
         fig = super().create_figure()
@@ -104,7 +104,7 @@ class OptionPriceChart(BaseChart):
 
 class BidAskSpreadChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="Bid-Ask Spread ($)", **kwargs)
+        super().__init__(y_axis_label="Bid (red) Ask (blue)  w($)", **kwargs)
         self.source = ColumnDataSource(data=dict(time=[], bid=[], ask=[]))
 
     def create_figure(self):
@@ -123,9 +123,9 @@ class BidAskSpreadChart(BaseChart):
         self.source.stream(new_data, rollover=2500)
         self.update_y_range(self.source.data["bid"] + self.source.data["ask"])
 
-class VolumeHeartbeatChart(BaseChart):
+class StockVolumeHeartbeatChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="Volume per sec", **kwargs)
+        super().__init__(y_axis_label="Volume (shares)", **kwargs)
         self.source = ColumnDataSource(data=dict(time=[], volume=[]))
 
     def create_figure(self):
@@ -137,6 +137,22 @@ class VolumeHeartbeatChart(BaseChart):
         new_data = dict(time=[timestamp], volume=[volume])
         self.source.stream(new_data, rollover=2500)
         self.update_y_range(self.source.data["volume"])
+
+class OptionVolumeHeartbeatChart(BaseChart):
+    def __init__(self, **kwargs):
+        super().__init__(y_axis_label="Volume (contracts)", **kwargs)
+        self.source = ColumnDataSource(data=dict(time=[], volume=[]))
+
+    def create_figure(self):
+        fig = super().create_figure()
+        fig.vbar(x="time", top="volume", width=500, source=self.source, color="purple")
+        return fig
+
+    def update_chart(self, volume, timestamp):
+        new_data = dict(time=[timestamp], volume=[volume])
+        self.source.stream(new_data, rollover=2500)
+        self.update_y_range(self.source.data["volume"])
+
 
 # -------------------------------
 # Integration Functions for Bokeh Server
@@ -163,10 +179,10 @@ def modify_option_bidask_doc(doc):
     modify_doc('option_bidask', BidAskSpreadChart, doc)
 
 def modify_stock_volume_doc(doc):
-    modify_doc('stock_volume', VolumeHeartbeatChart, doc)
+    modify_doc('stock_volume', StockVolumeHeartbeatChart, doc)
 
 def modify_option_volume_doc(doc):
-    modify_doc('option_volume', VolumeHeartbeatChart, doc)
+    modify_doc('option_volume', OptionVolumeHeartbeatChart, doc)
 
 # -------------------------------
 # Update functions
