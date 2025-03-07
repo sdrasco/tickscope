@@ -104,7 +104,7 @@ class OptionPriceChart(BaseChart):
 
 class BidAskSpreadChart(BaseChart):
     def __init__(self, **kwargs):
-        super().__init__(y_axis_label="Bid (red) Ask (blue)  w($)", **kwargs)
+        super().__init__(y_axis_label="Bid (red) Ask (blue) ($)", **kwargs)
         self.source = ColumnDataSource(data=dict(time=[], bid=[], ask=[]))
 
     def create_figure(self):
