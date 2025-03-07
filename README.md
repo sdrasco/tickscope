@@ -3,11 +3,11 @@
 
 ## Tickscope
 
-Tickscope is a simple Python-based web application for monitoring live trading data in real-time. Inspired by an oscilloscope used in electronics, Tickscope streams detailed real-time data for a single option contract along with its underlying stock, as illustrated in the screenshot below.
+Tickscope is a simple Python-based web application for monitoring live trading data in real-time. Inspired by an oscilloscope used in electronics, Tickscope streams detailed real-time data for a single option contract along with its underlying stock, as illustrated in the screenshot below
 
 ![Tickscope Dual Charts](docs/images/sixchart.png)
 
-Here's [a clip of it in action](https://youtu.be/CXOk29_TtEA?feature=shared) (sped up so that you can see some option trades).
+and [this real-time clip of it in action](https://youtu.be/jjH9sx_A8j4).
 
 Keep in mind you'll need a Polygon.io "Stocks Advanced" and "Options Advanced" subscription. Without those, Tickscope is enthusiastic but not particularly useful.
 
