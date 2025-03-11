@@ -1,0 +1,16 @@
+# Xcode project files
+*.pbxproj linguist-language=Objective-C
+
+# Swift files
+*.swift linguist-detectable=true
+
+# Storyboard and XIB files
+*.storyboard linguist-vendored
+*.xib linguist-vendored
+
+# Asset catalogs
+*.xcassets linguist-vendored
+
+# Configuration and plist files
+*.plist linguist-vendored
+*.xcconfig linguist-vendored
