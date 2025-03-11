@@ -4,13 +4,13 @@ Tickscope is a real-time market data visualization tool. This repository contain
 
 - **Python Version** (`python-version` branch): A web application using Python and Dash.
   
-  ![Python Version Screenshot](images/python-screenshot.png)
+  ![Python Version Screenshot](docs/images/python-screenshot.png)
 
   ▶️ [Watch Python Version Demo](https://youtu.be/jjH9sx_A8j4?vq=hd2160)
 
 - **Swift Version** (`swift-version` branch): A macOS-native application built with Swift and SwiftUI.
 
-  ![Swift Version Screenshot](images/swift-screenshot.png)
+  ![Swift Version Screenshot](docs/images/swift-screenshot.png)
 
   ▶️ [Watch Swift Version Demo](https://youtu.be/gcE7muerhAI?vq=hd2160)
 
