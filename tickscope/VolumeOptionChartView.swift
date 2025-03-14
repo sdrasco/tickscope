@@ -31,21 +31,13 @@ struct VolumeOptionChartView: View {
     private func optionVolumeRange() -> ClosedRange<Int> {
         let volumes = webSocketManager.optionVolumes.map { $0.volume }
         
-        guard let minVolume = volumes.min(), let maxVolume = volumes.max() else {
-            return 0...10 // sensible default if no data present
+        guard let maxVolume = volumes.max(), maxVolume > 0 else {
+            return 0...10 // Default range if no data or all zero
         }
         
-        let safeMinVolume = max(minVolume, 0)
-        
-        if minVolume == maxVolume {
-            let padding = max(Int(Double(minVolume) * 0.1), 1)
-            let lowerBound = max(0, minVolume - padding)
-            let upperBound = minVolume + padding
-            return lowerBound...upperBound
-        } else {
-            let padding = max(Int(Double(maxVolume - minVolume) * 0.1), 1)
-            let lowerBound = max(0, minVolume - padding)
-            return lowerBound...(maxVolume + padding)
-        }
+        let padding = max(Int(Double(maxVolume) * 0.1), 1)
+        let upperBound = maxVolume + padding
+
+        return 0...upperBound
     }
 }
