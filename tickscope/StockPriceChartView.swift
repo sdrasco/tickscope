@@ -6,7 +6,7 @@ struct StockPriceChartView: View {
 
     var body: some View {
         VStack {
-            Text("Traded Stock Price")
+            Text("Traded Stock Price ($)")
                 .font(.headline)
                 .padding()
 

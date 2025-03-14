@@ -151,14 +151,14 @@ class WebSocketManager: ObservableObject {
                             if let price = message["p"] as? Double,
                                let size = message["s"] as? Int {
                                 let trade = Trade(price: price, timestamp: Date())
-                                let volumeData = VolumeData(volume: size, timestamp: Date()) // ✅ Store volume
+                                let volumeData = VolumeData(volume: size, timestamp: Date())
 
                                 DispatchQueue.main.async {
                                     self.tradePrices.append(trade)
-                                    self.stockVolumes.append(volumeData) // ✅ Store volume for stock trades
+                                    self.stockVolumes.append(volumeData) //
 
-                                    // Keep only the last 60 seconds of data
-                                    let cutoffTime = Date().addingTimeInterval(-60)
+                                    // Keep only the last X seconds of data
+                                    let cutoffTime = Date().addingTimeInterval(-Config.stockDataRetention)
                                     self.tradePrices.removeAll { $0.timestamp < cutoffTime }
                                     self.stockVolumes.removeAll { $0.timestamp < cutoffTime }
                                 }
@@ -168,7 +168,7 @@ class WebSocketManager: ObservableObject {
                                 let quote = BidAskQuote(bidPrice: bid, askPrice: ask, timestamp: Date())
                                 DispatchQueue.main.async {
                                     self.bidAskStockPrices.append(quote)
-                                    self.bidAskStockPrices.removeAll { $0.timestamp < Date().addingTimeInterval(-60) }
+                                    self.bidAskStockPrices.removeAll { $0.timestamp < Date().addingTimeInterval(-Config.stockDataRetention) }
                                 }
                             }
                         default:
@@ -177,6 +177,7 @@ class WebSocketManager: ObservableObject {
                     }
                 }
             }
+            updateOptionChartsTimestamp()
         } catch {
             print("Failed to parse stock message: \(error)")
         }
@@ -193,14 +194,14 @@ class WebSocketManager: ObservableObject {
                             if let price = message["p"] as? Double,
                                let size = message["s"] as? Int {
                                 let trade = Trade(price: price, timestamp: Date())
-                                let volumeData = VolumeData(volume: size, timestamp: Date()) // ✅ Store volume
+                                let volumeData = VolumeData(volume: size, timestamp: Date())
 
                                 DispatchQueue.main.async {
                                     self.optionTradePrices.append(trade)
-                                    self.optionVolumes.append(volumeData) // ✅ Store volume for options
+                                    self.optionVolumes.append(volumeData)
 
-                                    // Keep only the last 60 seconds of data
-                                    let cutoffTime = Date().addingTimeInterval(-60)
+                                    // Keep only the last X seconds of data
+                                    let cutoffTime = Date().addingTimeInterval(-Config.optionDataRetention)
                                     self.optionTradePrices.removeAll { $0.timestamp < cutoffTime }
                                     self.optionVolumes.removeAll { $0.timestamp < cutoffTime }
                                 }
@@ -210,7 +211,7 @@ class WebSocketManager: ObservableObject {
                                 let quote = BidAskQuote(bidPrice: bid, askPrice: ask, timestamp: Date())
                                 DispatchQueue.main.async {
                                     self.bidAskOptionPrices.append(quote)
-                                    self.bidAskOptionPrices.removeAll { $0.timestamp < Date().addingTimeInterval(-60) }
+                                    self.bidAskOptionPrices.removeAll { $0.timestamp < Date().addingTimeInterval(-Config.optionDataRetention) }
                                 }
                             }
                         default:
@@ -227,5 +228,15 @@ class WebSocketManager: ObservableObject {
     func disconnect() {
         stockWebSocket?.cancel()
         optionWebSocket?.cancel()
+    }
+    
+    private func updateOptionChartsTimestamp() {
+        let cutoffTime = Date().addingTimeInterval(-Config.optionDataRetention)
+    
+        DispatchQueue.main.async {
+            self.optionTradePrices.removeAll { $0.timestamp < cutoffTime }
+            self.optionVolumes.removeAll { $0.timestamp < cutoffTime }
+            self.bidAskOptionPrices.removeAll { $0.timestamp < cutoffTime }
+        }
     }
 }

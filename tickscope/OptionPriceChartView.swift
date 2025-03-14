@@ -5,7 +5,6 @@
 //  Created by sdrasco on 10/03/2025.
 //
 
-
 import SwiftUI
 import Charts
 
@@ -14,7 +13,7 @@ struct OptionPriceChartView: View {
 
     var body: some View {
         VStack {
-            Text("Traded Option Premium")
+            Text("Traded Option Premium ($)")
                 .font(.headline)
                 .padding()
 
@@ -32,11 +31,20 @@ struct OptionPriceChartView: View {
     }
 
     private func optionPriceRange() -> ClosedRange<Double> {
-        guard let minPrice = webSocketManager.optionTradePrices.map({ $0.price }).min(),
-              let maxPrice = webSocketManager.optionTradePrices.map({ $0.price }).max() else {
-            return 5...20
+        let prices = webSocketManager.optionTradePrices.map { $0.price }
+        guard let minPrice = prices.min(),
+              let maxPrice = prices.max() else {
+            return 0...1 // default if no data is present
         }
-        let padding = (maxPrice - minPrice) * 0.1
-        return (minPrice - padding)...(maxPrice + padding)
+
+        if minPrice == maxPrice {
+            // When there's only one data point, add a sensible ±10% padding
+            let padding = max(minPrice * 0.1, 0.1) // Ensure padding isn't zero
+            return (minPrice - padding)...(maxPrice + padding)
+        } else {
+            // When multiple points exist, use actual min/max with padding
+            let padding = (maxPrice - minPrice) * 0.1
+            return (minPrice - padding)...(maxPrice + padding)
+        }
     }
 }

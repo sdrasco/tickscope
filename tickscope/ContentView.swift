@@ -2,14 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var webSocketManager = WebSocketManager()
-    @State private var optionTicker: String = "TSLA250314P00240000"
+    @State private var optionTicker: String = "NVDA250328C00131000"
     @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
 
     var body: some View {
         HStack(alignment: .top, spacing: 20) {
             VStack(alignment: .leading, spacing: 20) {
-                
+
                 Text(displayedTitle)
                     .font(.title)
                     .fontWeight(.bold)
@@ -17,44 +17,57 @@ struct ContentView: View {
 
                 StockPriceChartView(webSocketManager: webSocketManager)
                     .frame(height: 250)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
                 BidAskStockChartView(webSocketManager: webSocketManager)
                     .frame(height: 250)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
                 VolumeStockChartView(webSocketManager: webSocketManager)
                     .frame(height: 250)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
                 Spacer()
             }
 
             VStack(alignment: .trailing, spacing: 20) {
-                HStack {
-                    Spacer()
-
-                    TextField("Option Ticker", text: $optionTicker)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 200)
-
-                    Button("Scope it!") {
-                        let stockTicker = extractStockSymbol(from: optionTicker)
-                        webSocketManager.connect(stockTicker: stockTicker, optionTicker: optionTicker)
-                        isTracking = true
-                        displayedTitle = "Tickscope: \(formatOptionDetails(from: optionTicker))"
-                    }
+                TickerEntryView(ticker: $optionTicker) {
+                    let stockTicker = extractStockSymbol(from: optionTicker)
+                    webSocketManager.connect(stockTicker: stockTicker, optionTicker: optionTicker)
+                    isTracking = true
+                    displayedTitle = "Tickscope: \(formatOptionDetails(from: optionTicker))"
                 }
-                .frame(height: 30)
 
                 OptionPriceChartView(webSocketManager: webSocketManager)
                     .frame(height: 250)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
                 BidAskOptionChartView(webSocketManager: webSocketManager)
                     .frame(height: 250)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
                 VolumeOptionChartView(webSocketManager: webSocketManager)
                     .frame(height: 250)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
                 Spacer()
             }
         }
-        .padding()
+        .padding(.horizontal, 20) // Adds spacing to left and right edges
+        .padding(.vertical, 15)   // Optional vertical padding
     }
-
     private func extractStockSymbol(from optionTicker: String) -> String {
         let letters = optionTicker.prefix { $0.isLetter }
         return String(letters)

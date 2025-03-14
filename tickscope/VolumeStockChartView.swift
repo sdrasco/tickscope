@@ -14,7 +14,7 @@ struct VolumeStockChartView: View {
 
     var body: some View {
         VStack {
-            Text("Stock Trade Volume")
+            Text("Stock Trade Volume (shares)")
                 .font(.headline)
                 .padding()
 

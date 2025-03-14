@@ -6,7 +6,7 @@ struct BidAskStockChartView: View {
 
     var body: some View {
         VStack {
-            Text("Stock Bid-Ask Prices")
+            Text("Stock Quote Bid-Ask ($)")
                 .font(.headline)
                 .padding()
 
