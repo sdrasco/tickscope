@@ -1,17 +1,15 @@
-//
-//  tickscopeApp.swift
-//  tickscope
-//
-//  Created by sdrasco on 11/03/2025.
-//
-
 import SwiftUI
 
 @main
 struct tickscopeApp: App {
+    @State private var needsAPIKey = KeychainManager.getAPIKey() == nil
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .sheet(isPresented: $needsAPIKey) {
+                    APIKeyPromptView(isPresented: $needsAPIKey)
+                }
         }
     }
 }
