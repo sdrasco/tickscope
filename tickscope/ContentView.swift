@@ -7,67 +7,72 @@ struct ContentView: View {
     @State private var displayedTitle: String = "Tickscope"
 
     var body: some View {
-        HStack(alignment: .top, spacing: 20) {
-            VStack(alignment: .leading, spacing: 20) {
+        ScrollView(.vertical) {
+            HStack(alignment: .top, spacing: 20) {
+                // Left column
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(displayedTitle)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .frame(height: 30)
 
-                Text(displayedTitle)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .frame(height: 30)
+                    StockPriceChartView(webSocketManager: webSocketManager)
+                        .frame(height: 250)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
-                StockPriceChartView(webSocketManager: webSocketManager)
-                    .frame(height: 250)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    BidAskStockChartView(webSocketManager: webSocketManager)
+                        .frame(height: 250)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
-                BidAskStockChartView(webSocketManager: webSocketManager)
-                    .frame(height: 250)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    VolumeStockChartView(webSocketManager: webSocketManager)
+                        .frame(height: 250)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
-                VolumeStockChartView(webSocketManager: webSocketManager)
-                    .frame(height: 250)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-
-                Spacer()
-            }
-
-            VStack(alignment: .trailing, spacing: 20) {
-                TickerEntryView(ticker: $optionTicker) {
-                    let stockTicker = extractStockSymbol(from: optionTicker)
-                    webSocketManager.connect(stockTicker: stockTicker, optionTicker: optionTicker)
-                    isTracking = true
-                    displayedTitle = "Tickscope: \(formatOptionDetails(from: optionTicker))"
+                    Spacer()
                 }
 
-                OptionPriceChartView(webSocketManager: webSocketManager)
-                    .frame(height: 250)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                // Right column
+                VStack(alignment: .trailing, spacing: 20) {
+                    TickerEntryView(ticker: $optionTicker) {
+                        let uppercaseTicker = optionTicker.uppercased()
+                        let stockTicker = extractStockSymbol(from: uppercaseTicker)
+                        webSocketManager.connect(stockTicker: stockTicker, optionTicker: uppercaseTicker)
+                        isTracking = true
+                        displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
+                    }
 
-                BidAskOptionChartView(webSocketManager: webSocketManager)
-                    .frame(height: 250)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    OptionPriceChartView(webSocketManager: webSocketManager)
+                        .frame(height: 250)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
-                VolumeOptionChartView(webSocketManager: webSocketManager)
-                    .frame(height: 250)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    BidAskOptionChartView(webSocketManager: webSocketManager)
+                        .frame(height: 250)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
-                Spacer()
+                    VolumeOptionChartView(webSocketManager: webSocketManager)
+                        .frame(height: 250)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
+                    Spacer()
+                }
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 15)
         }
-        .padding(.horizontal, 20) // Adds spacing to left and right edges
-        .padding(.vertical, 15)   // Optional vertical padding
     }
+    
     private func extractStockSymbol(from optionTicker: String) -> String {
         let letters = optionTicker.prefix { $0.isLetter }
         return String(letters)
