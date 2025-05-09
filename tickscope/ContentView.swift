@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var webSocketManager = WebSocketManager()
+    @StateObject private var webSocketManager = IBKRWebSocketManager()
     @State private var optionTicker: String = "NVDA250328C00131000"
     @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
@@ -41,10 +41,21 @@ struct ContentView: View {
                 VStack(alignment: .trailing, spacing: 20) {
                     TickerEntryView(ticker: $optionTicker) {
                         let uppercaseTicker = optionTicker.uppercased()
-                        let stockTicker = extractStockSymbol(from: uppercaseTicker)
-                        webSocketManager.connect(stockTicker: stockTicker, optionTicker: uppercaseTicker)
-                        isTracking = true
-                        displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
+
+                        Task {
+                            do {
+                                async let optionId = ContractLookup.optionConId(for: uppercaseTicker)
+                                async let stockId  = ContractLookup.stockConId(for: extractStockSymbol(from: uppercaseTicker))
+                                let ids = try await [stockId, optionId]
+
+                                webSocketManager.connect(conIds: ids)
+                                isTracking = true
+                                displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
+                            } catch {
+                                // TODO: surface this in the UI
+                                print("Contract lookup failed:", error)
+                            }
+                        }
                     }
 
                     OptionPriceChartView(webSocketManager: webSocketManager)
@@ -71,6 +82,7 @@ struct ContentView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 15)
         }
+        .onDisappear { webSocketManager.disconnect() }
     }
     
     private func extractStockSymbol(from optionTicker: String) -> String {
