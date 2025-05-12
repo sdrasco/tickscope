@@ -1,8 +1,18 @@
+//
+//  BidAskStockChartView.swift
+//  TickscopeSwift
+//
+//  Created by sdrasco on 10/03/2025.
+//  IBKR-adapted on 09/05/2025
+//
+
 import SwiftUI
 import Charts
 
 struct BidAskStockChartView: View {
-    @ObservedObject var webSocketManager: WebSocketManager
+    /// IBKR streaming manager (replaces Polygon WebSocketManager)
+    @ObservedObject var webSocketManager: IBKRWebSocketManager
+    let stockConid: Int          // concrete stock contract to plot
 
     var body: some View {
         VStack {
@@ -10,30 +20,47 @@ struct BidAskStockChartView: View {
                 .font(.headline)
                 .padding()
 
-            Chart {
-                ForEach(webSocketManager.bidAskStockPrices, id: \.timestamp) { quote in
-                    PointMark( // ✅ Marker for Bids
+            Chart(filteredQuotes, id: \.id) { quote in
+                // Bid marker
+                if let bid = quote.bid {
+                    PointMark(
                         x: .value("Time", quote.timestamp),
-                        y: .value("Bid", quote.bidPrice)
+                        y: .value("Bid", bid)
                     )
-                    .foregroundStyle(.red)
-
-                    PointMark( // ✅ Marker for Asks
+                    .symbol(.circle)      // built-in symbol shape
+                    .opacity(0.8)
+                }
+                // Ask marker
+                if let ask = quote.ask {
+                    PointMark(
                         x: .value("Time", quote.timestamp),
-                        y: .value("Ask", quote.askPrice)
+                        y: .value("Ask", ask)
                     )
-                    .foregroundStyle(.green)
+                    .symbol(.square)      // built-in symbol shape
+                    .opacity(0.8)
                 }
             }
-            .chartYScale(domain: bidAskStockRange())
+            .chartYScale(domain: priceRange())
         }
     }
 
-    private func bidAskStockRange() -> ClosedRange<Double> {
-        guard let minPrice = webSocketManager.bidAskStockPrices.map({ $0.bidPrice }).min(),
-              let maxPrice = webSocketManager.bidAskStockPrices.map({ $0.askPrice }).max() else {
-            return 250...260
-        }
+    // MARK: – Helpers -------------------------------------------------------
+
+    /// Quotes for *this* stock that carry a bid or ask value.
+    private var filteredQuotes: [QuoteDatum] {
+        webSocketManager.quotes
+            .filter { $0.conid == stockConid && ($0.bid != nil || $0.ask != nil) }
+    }
+
+    private func priceRange() -> ClosedRange<Double> {
+        let bids = filteredQuotes.compactMap(\.bid)
+        let asks = filteredQuotes.compactMap(\.ask)
+        guard
+            let minPrice = (bids + asks).min(),
+            let maxPrice = (bids + asks).max(),
+            maxPrice > minPrice
+        else { return 0...1 }
+
         let padding = (maxPrice - minPrice) * 0.1
         return (minPrice - padding)...(maxPrice + padding)
     }

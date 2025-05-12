@@ -5,6 +5,8 @@ struct ContentView: View {
     @State private var optionTicker: String = "NVDA250328C00131000"
     @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
+    @State private var stockConid: Int? = nil   // underlying stock ID once resolved
+    @State private var optionConid: Int? = nil   // resolved option ID
 
     var body: some View {
         ScrollView(.vertical) {
@@ -16,23 +18,36 @@ struct ContentView: View {
                         .fontWeight(.bold)
                         .frame(height: 30)
 
-                    StockPriceChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    if let stockID = stockConid {
+                        StockPriceChartView(webSocketManager: webSocketManager,
+                                            stockConid: stockID)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    }
 
-                    BidAskStockChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    if let stockID = stockConid {
+                        BidAskStockChartView(webSocketManager: webSocketManager,
+                                             stockConid: stockID)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                          .fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                       .stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    }
 
-                    VolumeStockChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    if let stockID = stockConid {
+                        VolumeStockChartView(webSocketManager: webSocketManager,
+                                             stockConid: stockID)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                          .fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                       .stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    }
 
                     Spacer()
                 }
@@ -41,14 +56,18 @@ struct ContentView: View {
                 VStack(alignment: .trailing, spacing: 20) {
                     TickerEntryView(ticker: $optionTicker) {
                         let uppercaseTicker = optionTicker.uppercased()
+                        print("🎯 Scope pressed with ticker:", uppercaseTicker)
 
                         Task {
                             do {
                                 async let optionId = ContractLookup.optionConId(for: uppercaseTicker)
                                 async let stockId  = ContractLookup.stockConId(for: extractStockSymbol(from: uppercaseTicker))
-                                let ids = try await [stockId, optionId]
+                                let optID   = try await optionId
+                                let stkID   = try await stockId
 
-                                webSocketManager.connect(conIds: ids)
+                                stockConid  = stkID
+                                optionConid = optID
+                                webSocketManager.connect(conIds: [stkID, optID])
                                 isTracking = true
                                 displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
                             } catch {
@@ -58,23 +77,32 @@ struct ContentView: View {
                         }
                     }
 
-                    OptionPriceChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    if let optID = optionConid {
+                        OptionPriceChartView(webSocketManager: webSocketManager,
+                                             optionConid: optID)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    }
 
-                    BidAskOptionChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    if let optID = optionConid {
+                        BidAskOptionChartView(optionConid: optID,
+                                              webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    }
 
-                    VolumeOptionChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    if let optID = optionConid {
+                        VolumeOptionChartView(webSocketManager: webSocketManager,
+                                              optionConid: optID)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    }
 
                     Spacer()
                 }

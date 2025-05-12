@@ -3,13 +3,18 @@
 //  TickscopeSwift
 //
 //  Created by sdrasco on 10/03/2025.
+//  IBKR‑adapted on 09/05/2025
 //
 
 import SwiftUI
 import Charts
 
 struct OptionPriceChartView: View {
-    @ObservedObject var webSocketManager: WebSocketManager
+    /// IBKR streaming manager (replaces Polygon WebSocketManager)
+    @ObservedObject var webSocketManager: IBKRWebSocketManager
+    /// The concrete option’s conid (used to filter trade ticks)
+
+    let optionConid: Int
 
     var body: some View {
         VStack {
@@ -17,34 +22,35 @@ struct OptionPriceChartView: View {
                 .font(.headline)
                 .padding()
 
-            Chart {
-                ForEach(webSocketManager.optionTradePrices, id: \.timestamp) { trade in
-                    PointMark(
-                        x: .value("Time", trade.timestamp),
-                        y: .value("Price", trade.price)
-                    )
-                    .foregroundStyle(.purple)
-                }
+            Chart(optionTrades, id: \.id) { trade in
+                PointMark(
+                    x: .value("Time", trade.timestamp),
+                    y: .value("Price", trade.price)
+                )
+                .opacity(0.8)
+                .symbol(.circle)
             }
-            .chartYScale(domain: optionPriceRange())
+            .chartYScale(domain: priceRange())
         }
     }
 
-    private func optionPriceRange() -> ClosedRange<Double> {
-        let prices = webSocketManager.optionTradePrices.map { $0.price }
-        guard let minPrice = prices.min(),
-              let maxPrice = prices.max() else {
-            return 0...1 // default if no data is present
-        }
+    // MARK: – Helpers -------------------------------------------------------
 
-        if minPrice == maxPrice {
-            // When there's only one data point, add a sensible ±10% padding
-            let padding = max(minPrice * 0.1, 0.1) // Ensure padding isn't zero
-            return (minPrice - padding)...(maxPrice + padding)
-        } else {
-            // When multiple points exist, use actual min/max with padding
-            let padding = (maxPrice - minPrice) * 0.1
-            return (minPrice - padding)...(maxPrice + padding)
-        }
+    /// Trade ticks that belong to **this** option contract only.
+    private var optionTrades: [TradeDatum] {
+        webSocketManager.trades.filter { $0.conid == optionConid }
+    }
+
+    /// Dynamic y‑axis that adds ±10 % padding around the live window.
+    private func priceRange() -> ClosedRange<Double> {
+        let prices = optionTrades.map(\.price)
+        guard
+            let minPrice = prices.min(),
+            let maxPrice = prices.max(),
+            maxPrice > minPrice
+        else { return 0...1 }     // fallback when no data yet
+
+        let padding = (maxPrice - minPrice) * 0.1
+        return (minPrice - padding)...(maxPrice + padding)
     }
 }

@@ -37,7 +37,9 @@ final class IBKRWebSocketManager: ObservableObject {
                                  delegateQueue: nil)
 
         webSocketTask = session.webSocketTask(with: url)
+        print("🌐 WS connecting to", url.absoluteString, "for conIds:", conIds)
         webSocketTask?.resume()
+        print("🌐 WS opened (resume called)")
 
         // Subscribe as soon as the socket opens
         let destination = "MarketData"
@@ -46,6 +48,7 @@ final class IBKRWebSocketManager: ObservableObject {
             "conids": conIds.map(String.init),
             "fields": defaultFieldIDs
         ]
+        print("➡️ WS subscribe message:", message)
         send(json: message)
 
         listen()    // start reading frames
@@ -54,6 +57,7 @@ final class IBKRWebSocketManager: ObservableObject {
     func disconnect() {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
+        print("🌙 WS disconnected")
     }
 
     // MARK: - Helpers
@@ -63,15 +67,17 @@ final class IBKRWebSocketManager: ObservableObject {
 
             switch result {
             case .success(.string(let text)):
+                print("⬅️ WS RECV string:", text)
                 self.handle(raw: text)
 
             case .success(.data(let data)):
+                print("⬅️ WS RECV data:", data.count, "bytes")
                 if let text = String(data: data, encoding: .utf8) {
                     self.handle(raw: text)
                 }
 
             case .failure(let error):
-                print("WS receive error:", error)
+                print("❌ WS receive error:", error)
                 self.disconnect()
             @unknown default:
                 break
@@ -83,10 +89,12 @@ final class IBKRWebSocketManager: ObservableObject {
     }
 
     private func send(json: [String: Any]) {
+        print("➡️ WS SEND raw:", json)
         guard let data = try? JSONSerialization.data(withJSONObject: json),
               let string = String(data: data, encoding: .utf8) else { return }
         webSocketTask?.send(.string(string)) { error in
-            if let error { print("WS send error:", error) }
+            if let error { print("❌ WS send error:", error) }
+            else { print("✅ WS send ok") }
         }
     }
 
