@@ -1,116 +1,143 @@
 import SwiftUI
 
 struct ContentView: View {
+    // FUTURE: surface lookup/stream errors via @State var errorAlert: Error?
     @StateObject private var webSocketManager = IBKRWebSocketManager()
     @State private var optionTicker: String = "NVDA250328C00131000"
-    @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
     @State private var stockConid: Int? = nil   // underlying stock ID once resolved
     @State private var optionConid: Int? = nil   // resolved option ID
+    @State private var showBanner: Bool = true
 
     var body: some View {
-        ScrollView(.vertical) {
-            HStack(alignment: .top, spacing: 20) {
-                // Left column
-                VStack(alignment: .leading, spacing: 20) {
-                    Text(displayedTitle)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .frame(height: 30)
+        ZStack(alignment: .top) {
+            ScrollView(.vertical) {
+                HStack(alignment: .top, spacing: 20) {
+                    // Left column
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text(displayedTitle)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .frame(height: 30)
 
-                    if let stockID = stockConid {
-                        StockPriceChartView(webSocketManager: webSocketManager,
-                                            stockConid: stockID)
-                            .frame(height: 250)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        if let stockID = stockConid {
+                            StockPriceChartView(webSocketManager: webSocketManager,
+                                                stockConid: stockID)
+                                .frame(height: 250)
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        }
+
+                        if let stockID = stockConid {
+                            BidAskStockChartView(webSocketManager: webSocketManager,
+                                                 stockConid: stockID)
+                                .frame(height: 250)
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 10)
+                                              .fill(Color.gray.opacity(0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                           .stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        }
+
+                        if let stockID = stockConid {
+                            VolumeStockChartView(webSocketManager: webSocketManager,
+                                                 stockConid: stockID)
+                                .frame(height: 250)
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 10)
+                                              .fill(Color.gray.opacity(0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                           .stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        }
+
+                        Spacer()
                     }
 
-                    if let stockID = stockConid {
-                        BidAskStockChartView(webSocketManager: webSocketManager,
-                                             stockConid: stockID)
-                            .frame(height: 250)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10)
-                                          .fill(Color.gray.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 10)
-                                       .stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                    }
+                    // Right column
+                    VStack(alignment: .trailing, spacing: 20) {
+                        TickerEntryView(tickerText: $optionTicker) { input in
+                            // Called after local validation passes
+                            let occString: String
+                            switch input {
+                            case .occ(let s):       occString = s
+                            case .components(let r, let d, let k, let right):
+                                // Render components into standard OCC so we can reuse existing helpers.
+                                let root6 = r.padding(toLength: 6, withPad: " ", startingAt: 0).uppercased()
+                                let df = DateFormatter(); df.dateFormat = "yyMMdd"; df.timeZone = .gmt
+                                let yyMMdd = df.string(from: d)
+                                let strikeInt = Int((NSDecimalNumber(decimal: k).doubleValue * 1000).rounded())
+                                let strikeField = String(format: "%08d", strikeInt)
+                                occString = "\(root6)\(yyMMdd)\(right.uppercased())\(strikeField)"
+                            }
 
-                    if let stockID = stockConid {
-                        VolumeStockChartView(webSocketManager: webSocketManager,
-                                             stockConid: stockID)
-                            .frame(height: 250)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10)
-                                          .fill(Color.gray.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 10)
-                                       .stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                    }
+                            print("🎯 Scope pressed with ticker:", occString)
 
-                    Spacer()
-                }
+                            Task {
+                                do {
+                                    async let optionId = ContractLookup.resolve(input)
+                                    async let stockId  = ContractLookup.stockConId(for: extractStockSymbol(from: occString))
+                                    let optID   = try await optionId
+                                    let stkID   = try await stockId
 
-                // Right column
-                VStack(alignment: .trailing, spacing: 20) {
-                    TickerEntryView(ticker: $optionTicker) {
-                        let uppercaseTicker = optionTicker.uppercased()
-                        print("🎯 Scope pressed with ticker:", uppercaseTicker)
-
-                        Task {
-                            do {
-                                async let optionId = ContractLookup.optionConId(for: uppercaseTicker)
-                                async let stockId  = ContractLookup.stockConId(for: extractStockSymbol(from: uppercaseTicker))
-                                let optID   = try await optionId
-                                let stkID   = try await stockId
-
-                                stockConid  = stkID
-                                optionConid = optID
-                                webSocketManager.connect(conIds: [stkID, optID])
-                                isTracking = true
-                                displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
-                            } catch {
-                                // TODO: surface this in the UI
-                                print("Contract lookup failed:", error)
+                                    stockConid  = stkID
+                                    optionConid = optID
+                                    webSocketManager.connect(conIds: [stkID, optID])
+                                    displayedTitle = "Tickscope: \(formatOptionDetails(from: occString))"
+                                } catch let err as InputError {
+                                    // Shouldn't occur—parsed earlier—but display just in case.
+                                    print("Input error:", err)
+                                } catch {
+                                    print("Contract lookup failed:", error)
+                                    // TODO: surface this in the UI
+                                }
                             }
                         }
-                    }
 
-                    if let optID = optionConid {
-                        OptionPriceChartView(webSocketManager: webSocketManager,
-                                             optionConid: optID)
-                            .frame(height: 250)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                    }
+                        if let optID = optionConid {
+                            OptionPriceChartView(webSocketManager: webSocketManager,
+                                                 optionConid: optID)
+                                .frame(height: 250)
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        }
 
-                    if let optID = optionConid {
-                        BidAskOptionChartView(optionConid: optID,
-                                              webSocketManager: webSocketManager)
-                            .frame(height: 250)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                    }
+                        if let optID = optionConid {
+                            BidAskOptionChartView(optionConid: optID,
+                                                  webSocketManager: webSocketManager)
+                                .frame(height: 250)
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        }
 
-                    if let optID = optionConid {
-                        VolumeOptionChartView(webSocketManager: webSocketManager,
-                                              optionConid: optID)
-                            .frame(height: 250)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                    }
+                        if let optID = optionConid {
+                            VolumeOptionChartView(webSocketManager: webSocketManager,
+                                                  optionConid: optID)
+                                .frame(height: 250)
+                                .padding(8)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                        }
 
-                    Spacer()
+                        Spacer()
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 15)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 15)
+            .onDisappear { webSocketManager.disconnect() }
+
+            if showBanner {
+                ConnectionBanner(status: webSocketManager.status,
+                                 error: webSocketManager.connectionError)
+                    .padding(.top, 8)
+                    .padding(.horizontal)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture { withAnimation { showBanner.toggle() } } // tap to hide
+            }
         }
-        .onDisappear { webSocketManager.disconnect() }
     }
     
     private func extractStockSymbol(from optionTicker: String) -> String {

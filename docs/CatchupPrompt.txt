@@ -1,0 +1,61 @@
+        You are about to explore a SwiftUI-based iOS project called “tickscope” that implements a real-time market-data streaming
+    application. It was originally built on the polygon.io API but is now being ported to use Interactive Brokers’ API. The
+    project is not yet fully working—the IBKR integration is in progress and there are a few TODOs around error handling and UI
+    feedback.
+
+        Project Layout:
+
+          docs/
+            • IBKR_API_swagger.json
+              – The full Interactive Brokers OpenAPI (Swagger) definition for their local Gateway REST/WebSocket API.
+
+          tickscope/
+            • tickscopeApp.swift
+              – Entry point of the SwiftUI App.
+            • Config.swift
+              – Static URLs for the local IBKR Gateway (WebSocket & REST), plus data-retention settings.
+            • ContractLookup.swift
+              – Async functions to resolve stock and option conIds via IBKR REST endpoints (/iserver/secdef/search and /info).
+    Includes parsing of OCC tickers into symbol/expiry/strike.
+            • IBKRWebSocketManager.swift
+              – Manages a URLSessionWebSocketTask to IBKR’s MarketData WebSocket. Publishes live trades, quotes, and volumes via
+    Combine to bound SwiftUI views. Uses a LocalhostTLSDelegate to trust self-signed certs on 127.0.0.1.
+            • ContentView.swift
+              – The main UI. Two-column ScrollView that displays stock charts on the left and option charts on the right. Ties
+    together the contract lookup and WebSocket manager.
+            • TickerEntryView.swift
+              – Simple SwiftUI control for entering an OCC option ticker and triggering the scope action.
+            • Chart view files (all import SwiftUI & Charts):
+                – StockPriceChartView.swift
+                – BidAskStockChartView.swift
+                – VolumeStockChartView.swift
+                – OptionPriceChartView.swift
+                – BidAskOptionChartView.swift
+                – VolumeOptionChartView.swift
+              Each filters the published trades/quotes/volumes by conId and renders the appropriate Chart marks.
+
+        Supporting files:
+          • Assets.xcassets/… (App icons, accent colors)
+          • Preview Content (SwiftUI previews)
+          • The Xcode project and workspace files under tickscope.xcodeproj
+
+        Technologies & Patterns:
+          • Swift 5, SwiftUI, Charts framework, Combine
+          • Async/Await for REST calls
+          • URLSessionWebSocketTask for streaming
+          • Local TLS delegate to bypass ATS for a local Gateway
+          • In-memory retention window trimming for chart data
+
+        Porting status & next steps:
+          • REST lookups and WebSocket connection logic are mostly in place, but full end-to-end flow (login/auth with the IBKR
+    Gateway, error handling, UI feedback) still needs work.
+          • The old polygon.io WebSocketManager has been removed; all streaming now goes through IBKRWebSocketManager.
+          • You’ll want to wire up proper authentication, handle Gateway credentials, and surface any lookup/streaming errors in
+    the UI.
+          • Consult docs/IBKR_API_swagger.json for available endpoints and message formats.
+
+        Use this context to:
+          – Generate a high-level architectural overview
+          – Identify missing pieces in the IBKR port
+          – Propose improvements or next tasks
+          – Answer detailed questions about how to hook up error handling, authentication, or chart optimizations

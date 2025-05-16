@@ -5,6 +5,9 @@
 
 import Foundation
 
+// MARK: – User‑input model
+// TickerInput and InputError enums now live in TickerInput.swift
+
 // MARK: – TLS delegate that trusts the Gateway’s self-signed certificate
 private final class LocalhostTLSDelegate: NSObject, URLSessionDelegate {
     func urlSession(_ session: URLSession,
@@ -90,12 +93,12 @@ enum ContractLookup {
     ///   1. Underlying conid via `/iserver/secdef/search`
     ///   2. Specific contract via `/iserver/secdef/info`
     ///   3. Pick row whose `maturityDate` matches the OCC date.
-    static func optionConId(for occ: String) async throws -> Int {
+    static func optionConId(forOCC occ: String) async throws -> Int {
         if let cached = cachedId(for: occ, type: "OPT") { return cached }
         print("🚀 optionConId entered for", occ)
 
         // 1️⃣ Parse OCC
-        guard let p = parseOCC(occ) else { throw LookupError.badTicker }
+        let p = try parseOCC(occ)
         print("✅ OCC parsed:", p)
 
         // 2️⃣ Underlying conid
@@ -106,7 +109,7 @@ enum ContractLookup {
         let inFmt = DateFormatter();  inFmt.dateFormat  = "yyyyMMdd"
         let outFmt = DateFormatter(); outFmt.dateFormat = "MMMyy"
         outFmt.locale = Locale(identifier: "en_US_POSIX")
-        guard let d = inFmt.date(from: p.expiry) else { throw LookupError.badTicker }
+        guard let d = inFmt.date(from: p.expiry) else { throw LookupError.notFound }
         let monthCode = outFmt.string(from: d).uppercased()          // JUN25
 
         // 4️⃣ Plain-dollar strike (00180000 → 180 or 182.5)
@@ -154,6 +157,23 @@ enum ContractLookup {
         return optID
     }
 
+    /// Universal resolver that takes either a raw OCC string or decomposed parts.
+    static func resolve(_ input: TickerInput) async throws -> Int {
+        switch input {
+        case .occ(let raw):
+            return try await optionConId(forOCC: raw)
+        case .components(let root, let expiry, let strike, let right):
+            // Render components → OCC 21‑char symbol
+            let root6 = root.padding(toLength: 6, withPad: " ", startingAt: 0).uppercased()
+            let dateFmt = DateFormatter(); dateFmt.dateFormat = "yyMMdd"; dateFmt.timeZone = .gmt
+            let yyMMdd = dateFmt.string(from: expiry)
+            let strikeInt = Int((NSDecimalNumber(decimal: strike).doubleValue * 1000).rounded())
+            let strikeField = String(format: "%08d", strikeInt)
+            let occ = "\(root6)\(yyMMdd)\(right.uppercased())\(strikeField)"
+            return try await optionConId(forOCC: occ)
+        }
+    }
+
     // ------------------------------------------------------------------
     // MARK: Internals
     // ------------------------------------------------------------------
@@ -171,26 +191,45 @@ enum ContractLookup {
         return id
     }
 
-    /// Parse OCC ticker → (symbol, expiry YYYYMMDD, right, strike 8-digit)
-    private static func parseOCC(_ occ: String) -> (symbol: String,
-                                                    expiry: String,
-                                                    right: String,
-                                                    strike: String)? {
-        let pattern = #"^([A-Z]{1,6})(\d{6})([CP])(\d{8})$"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let ns = NSRange(occ.startIndex..<occ.endIndex, in: occ)
+    /// Parse OCC ticker → (symbol, expiry YYYYMMDD, right, strike 8‑digit)
+    private static func parseOCC(_ occ: String) throws -> (symbol: String,
+                                                           expiry: String,
+                                                           right: String,
+                                                           strike: String) {
+        // OCC strings are 16‑21 chars (root 1‑6 + YYMMDD + C/P + 8‑digit strike)
+        guard (16...21).contains(occ.count) else { throw InputError.length }
 
-        guard let m = regex.firstMatch(in: occ, range: ns),
-              m.numberOfRanges == 5,
-              let r1 = Range(m.range(at: 1), in: occ),
-              let r2 = Range(m.range(at: 2), in: occ),
-              let r3 = Range(m.range(at: 3), in: occ),
-              let r4 = Range(m.range(at: 4), in: occ) else { return nil }
+        // Accept any alphanumerics in the 8‑char strike field so
+        // `Int(strike)` can later throw `.badStrike` if non‑numeric.
+        let pattern = #"^([A-Z]{1,6})(\d{6})([CP])([A-Z0-9]{8})$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let m = regex.firstMatch(in: occ, range: NSRange(location: 0, length: occ.utf16.count)),
+              m.numberOfRanges == 5
+        else { throw InputError.badFlag }
 
-        let symbol = String(occ[r1])
-        let expiry = "20" + String(occ[r2])   // YYMMDD → YYYYMMDD
-        let right  = String(occ[r3])          // C / P
-        let strike = String(occ[r4])          // 8 digits
+        func slice(_ idx: Int) -> String {
+            let range = m.range(at: idx)
+            let start = occ.index(occ.startIndex, offsetBy: range.location)
+            let end   = occ.index(start, offsetBy: range.length)
+            return String(occ[start..<end])
+        }
+
+        let symbol = slice(1).trimmingCharacters(in: .whitespaces)
+        let yyMMdd = slice(2)
+        let right  = slice(3)
+        let strike = slice(4)
+
+        // Validate YYMMDD
+        let inFmt = DateFormatter(); inFmt.dateFormat = "yyMMdd"; inFmt.timeZone = .gmt
+        guard let d = inFmt.date(from: yyMMdd) else { throw InputError.badDate }
+
+        // Re‑emit expiry as YYYYMMDD
+        let outFmt = DateFormatter(); outFmt.dateFormat = "yyyyMMdd"; outFmt.timeZone = .gmt
+        let expiry = outFmt.string(from: d)
+
+        // Strike numeric sanity check
+        guard Int(strike) != nil else { throw InputError.badStrike }
+
         return (symbol, expiry, right, strike)
     }
 
@@ -201,7 +240,7 @@ enum ContractLookup {
         cacheQueue.sync { cache["\(type)|\(key)"] = id }
     }
 
-    enum LookupError: Error { case badTicker, notFound }
+    enum LookupError: Error { case notFound }
 }   // ← end of enum ContractLookup
 
 // ----------------------------------------------------------------------

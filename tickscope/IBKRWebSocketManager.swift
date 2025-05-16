@@ -2,185 +2,176 @@
 //  IBKRWebSocketManager.swift
 //  tickscope
 //
-//  Created in the IBKR-swift-version branch
-//
 
 import Foundation
 import Combine
 
-/// Market-data field IDs we care about for the first pass.
-/// 31 = last trade price, 84 = bid, 85 = ask, 3 = last size, 8 = volume.
-private let defaultFieldIDs = "31,84,85,3,8"
+// MARK: – Connection state exposed to UI
+enum ConnectionStatus { case disconnected, connecting, connected }
+
+// MARK: – Field set
+/// 31 = last trade, 83 = last trade (alt)
+/// 84 = bid, 85 = ask
+/// 3 / 66 = last size, 8 = cum volume
+private let defaultFieldIDs = "31,83,84,85,66,3,8"
 
 @MainActor
 final class IBKRWebSocketManager: ObservableObject {
 
-    // MARK: - Published output (wire these to your charts later)
-    /// Keep only the most recent N seconds of data (uses Config’s stock interval for now)
+    // MARK: Published series
     private let retentionSeconds: TimeInterval = Config.stockDataRetention
     @Published var trades:  [TradeDatum]  = []
     @Published var quotes:  [QuoteDatum]  = []
     @Published var volumes: [VolumeDatum] = []
 
-    // MARK: - Private
+    @Published var status: ConnectionStatus = .disconnected
+    @Published var connectionError: Error?
+
     private var webSocketTask: URLSessionWebSocketTask?
-    private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Public API
-    /// Call this after you have the conId(s) you want to stream.
+    // MARK: Public API
     func connect(conIds: [Int]) {
-        guard webSocketTask == nil else { return }   // already connected
+        if webSocketTask != nil { disconnect() }
+        clearAllData()
+        connectionError = nil
+        status = .connecting
 
-        let url = Config.websocketURL
         let session = URLSession(configuration: .default,
                                  delegate: LocalhostTLSDelegate(),
                                  delegateQueue: nil)
-
+        let url = Config.websocketURL
         webSocketTask = session.webSocketTask(with: url)
-        print("🌐 WS connecting to", url.absoluteString, "for conIds:", conIds)
+        print("🌐 WS connecting to", url, "for", conIds)
         webSocketTask?.resume()
-        print("🌐 WS opened (resume called)")
+        status = .connected
 
-        // Subscribe as soon as the socket opens
-        let destination = "MarketData"
-        let message: [String: Any] = [
-            "destination": destination,
+        send(json: [
+            "destination": "MarketData",
             "conids": conIds.map(String.init),
             "fields": defaultFieldIDs
-        ]
-        print("➡️ WS subscribe message:", message)
-        send(json: message)
-
-        listen()    // start reading frames
+        ])
+        listen()
     }
 
     func disconnect() {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
-        print("🌙 WS disconnected")
+        status = .disconnected
     }
 
-    // MARK: - Helpers
+    // MARK: Helpers
+    private func clearAllData() { trades.removeAll(); quotes.removeAll(); volumes.removeAll() }
+
     private func listen() {
         webSocketTask?.receive { [weak self] result in
             guard let self else { return }
-
             switch result {
+
             case .success(.string(let text)):
-                print("⬅️ WS RECV string:", text)
-                self.handle(raw: text)
+                Task { @MainActor in self.handleMarketData(text) }
 
             case .success(.data(let data)):
-                print("⬅️ WS RECV data:", data.count, "bytes")
+                // ── NEW: peek at every binary/text frame first ─────────────
+                print("🧱 raw frame (\(data.count) bytes):",
+                      String(data: data.prefix(120), encoding: .utf8) ?? "<binary>")
+                // -----------------------------------------------------------
                 if let text = String(data: data, encoding: .utf8) {
-                    self.handle(raw: text)
+                    Task { @MainActor in self.handleMarketData(text) }
                 }
 
-            case .failure(let error):
-                print("❌ WS receive error:", error)
+            case .failure(let err):
+                self.connectionError = err
                 self.disconnect()
-            @unknown default:
-                break
-            }
 
-            // Re-arm the listener for the next frame
+            @unknown default: break
+            }
             self.listen()
         }
     }
 
     private func send(json: [String: Any]) {
-        print("➡️ WS SEND raw:", json)
         guard let data = try? JSONSerialization.data(withJSONObject: json),
-              let string = String(data: data, encoding: .utf8) else { return }
-        webSocketTask?.send(.string(string)) { error in
-            if let error { print("❌ WS send error:", error) }
-            else { print("✅ WS send ok") }
+              let str  = String(data: data, encoding: .utf8) else { return }
+        webSocketTask?.send(.string(str)) { if let e = $0 { self.connectionError = e } }
+    }
+
+    private func trimOldData(now: Date = .init()) {
+        let cut = now.addingTimeInterval(-retentionSeconds)
+        trades.removeAll  { $0.timestamp < cut }
+        quotes.removeAll  { $0.timestamp < cut }
+        volumes.removeAll { $0.timestamp < cut }
+    }
+
+    // MARK: Frame parsing
+    private func handleMarketData(_ text: String) {
+        guard let data = text.data(using: .utf8) else { return }
+
+        if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            arr.forEach(parseMarketData); trimOldData(); return
         }
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            parseMarketData(obj); trimOldData(); return
+        }
+
+        print("❌ Un-parsable frame:", text.prefix(120))
     }
 
-    /// Drop any elements older than `retentionSeconds`
-    private func trimOldData(now: Date = Date()) {
-        let cutoff = now.addingTimeInterval(-retentionSeconds)
-        trades.removeAll  { $0.timestamp < cutoff }
-        quotes.removeAll  { $0.timestamp < cutoff }
-        volumes.removeAll { $0.timestamp < cutoff }
-    }
+    /// Parse one market-data JSON object and append to arrays.
+    private func parseMarketData(_ obj: [String: Any]) {
 
-    private func handle(raw text: String) {
-        guard
-            let data = text.data(using: .utf8),
-            let objects = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        else { return }
+        guard let conid = (obj["conid"] as? String).flatMap(Int.init)
+               ?? obj["conid"] as? Int else { return }
 
-        for obj in objects {
-            // conid is either an Int or a String
-            guard let conid = (obj["conid"] as? String).flatMap(Int.init) ?? obj["conid"] as? Int else { continue }
+        let tsMillis = (obj["7"] as? Double)
+                    ?? (obj["7"] as? NSNumber)?.doubleValue
+        let ts = tsMillis.map { Date(timeIntervalSince1970: $0 / 1_000) } ?? Date()
 
-            // Field 7 is epoch‑ms; fall back to "now" if absent
-            let tsMillis = (obj["7"] as? Double)
-                        ?? (obj["7"] as? NSNumber)?.doubleValue
-            let timestamp = tsMillis != nil
-                ? Date(timeIntervalSince1970: tsMillis! / 1_000)
-                : Date()
-
-            // -------- Trade (31 = last price, 3 = last size) --------
-            if let priceStr = obj["31"] as? String,
-               let price    = Double(priceStr) {
-
-                let size = (obj["3"] as? String).flatMap(Int.init)
-                       ?? (obj["3"] as? NSNumber)?.intValue
-
-                trades.append(
-                    TradeDatum(conid: conid,
-                               price: price,
-                               size:  size,
-                               timestamp: timestamp)
-                )
+        func asDouble(_ v: Any?) -> Double? {
+            switch v {
+            case let s as String:   Double(s)
+            case let n as NSNumber: n.doubleValue
+            default: nil
             }
-
-            // -------- Quote (84 = bid, 85 = ask) --------
-            if obj["84"] != nil || obj["85"] != nil {
-                let bid = (obj["84"] as? String).flatMap(Double.init)
-                       ?? (obj["84"] as? NSNumber)?.doubleValue
-                let ask = (obj["85"] as? String).flatMap(Double.init)
-                       ?? (obj["85"] as? NSNumber)?.doubleValue
-
-                quotes.append(
-                    QuoteDatum(conid: conid,
-                               bid: bid,
-                               ask: ask,
-                               timestamp: timestamp)
-                )
-            }
-
-            // -------- Volume (8 = cum volume) --------
-            if let volStr = obj["8"] as? String,
-               let vol    = Int(volStr) {
-
-                volumes.append(
-                    VolumeDatum(conid: conid,
-                                volume: vol,
-                                timestamp: timestamp)
-                )
+        }
+        func asInt(_ v: Any?) -> Int? {
+            switch v {
+            case let s as String:   Int(s)
+            case let n as NSNumber: n.intValue
+            default: nil
             }
         }
 
-        trimOldData()
+        // Trade
+        if let price = asDouble(obj["31"]) ?? asDouble(obj["83"]) {
+            let size = asInt(obj["3"]) ?? asInt(obj["66"])
+            trades.append(.init(conid: conid, price: price, size: size, timestamp: ts))
+            print("📈 trade", conid, price, size ?? 0, "@", ts)
+        }
+
+        // Quote
+        if obj["84"] != nil || obj["85"] != nil {
+            let bid = asDouble(obj["84"])
+            let ask = asDouble(obj["85"])
+            quotes.append(.init(conid: conid, bid: bid, ask: ask, timestamp: ts))
+        }
+
+        // Volume
+        if let vol = asInt(obj["8"]) {
+            volumes.append(.init(conid: conid, volume: vol, timestamp: ts))
+        }
     }
 }
 
-/// Accept localhost / self-signed certs so ATS doesn’t block the socket.
-/// Remove this if you proxy through valid TLS.
+// MARK: – Localhost TLS bypass
 private final class LocalhostTLSDelegate: NSObject, URLSessionDelegate {
-    func urlSession(_ session: URLSession,
-                    didReceive challenge: URLAuthenticationChallenge,
+    func urlSession(_ s: URLSession, didReceive c: URLAuthenticationChallenge,
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        completionHandler(.useCredential, URLCredential(trust: challenge.protectionSpace.serverTrust!))
+        completionHandler(.useCredential,
+                          URLCredential(trust: c.protectionSpace.serverTrust!))
     }
 }
 
-/// Parsed model structs ----------------------------------------------------
-
+// MARK: – Data models
 struct TradeDatum: Identifiable {
     let id = UUID()
     let conid: Int
@@ -188,7 +179,6 @@ struct TradeDatum: Identifiable {
     let size: Int?
     let timestamp: Date
 }
-
 struct QuoteDatum: Identifiable {
     let id = UUID()
     let conid: Int
@@ -196,7 +186,6 @@ struct QuoteDatum: Identifiable {
     let ask: Double?
     let timestamp: Date
 }
-
 struct VolumeDatum: Identifiable {
     let id = UUID()
     let conid: Int
