@@ -15,6 +15,13 @@ enum ConnectionStatus { case disconnected, connecting, connected }
 /// 3 / 66 = last size, 8 = cum volume
 private let defaultFieldIDs = "31,83,84,85,66,3,8"
 
+// Session used for REST calls such as market data unsubscribe
+private let restSession: URLSession = {
+    URLSession(configuration: .default,
+               delegate: LocalhostTLSDelegate(),
+               delegateQueue: nil)
+}()
+
 @MainActor
 final class IBKRWebSocketManager: ObservableObject {
 
@@ -55,6 +62,12 @@ final class IBKRWebSocketManager: ObservableObject {
     }
 
     func disconnect() {
+        // Attempt to cancel all market-data streams
+        Task {
+            var url = Config.restBaseURL.appendingPathComponent("/iserver/marketdata/unsubscribeall")
+            var req = URLRequest(url: url); req.timeoutInterval = 8
+            _ = try? await restSession.data(for: req)
+        }
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         status = .disconnected

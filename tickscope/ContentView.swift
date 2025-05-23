@@ -82,6 +82,7 @@ struct ContentView: View {
 
                                     stockConid  = stkID
                                     optionConid = optID
+                                    try await MarketData.requestSnapshot(conIds: [stkID, optID])
                                     webSocketManager.connect(conIds: [stkID, optID])
                                     displayedTitle = "Tickscope: \(formatOptionDetails(from: occString))"
                                 } catch let err as InputError {
