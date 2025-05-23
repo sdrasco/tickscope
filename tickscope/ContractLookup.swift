@@ -52,7 +52,14 @@ enum ContractLookup {
         req.httpBody = try JSONSerialization.data(withJSONObject: ["symbol": symbol])
         req.timeoutInterval = 8
 
-        let (data, _) = try await insecureLocalSession.data(for: req)
+        let (data, resp) = try await insecureLocalSession.data(for: req)
+        if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
+            if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let msg = obj["error"] as? String {
+                throw LookupError.server(msg)
+            }
+            throw LookupError.server("HTTP \(http.statusCode)")
+        }
 
         // Debug: see the raw search payload once
         if let s = String(data: data, encoding: .utf8) {
@@ -131,7 +138,14 @@ enum ContractLookup {
         print("⛳️ SECDEF‑INFO URL:", url.absoluteString)
 
         var req = URLRequest(url: url); req.timeoutInterval = 8
-        let (data, _) = try await insecureLocalSession.data(for: req)
+        let (data, resp) = try await insecureLocalSession.data(for: req)
+        if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
+            if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let msg = obj["error"] as? String {
+                throw LookupError.server(msg)
+            }
+            throw LookupError.server("HTTP \(http.statusCode)")
+        }
 
         // Debug: raw JSON the Gateway returned
         print("⛳️ RAW JSON:", String(data: data, encoding: .utf8) ?? "<nil>")
@@ -180,7 +194,14 @@ enum ContractLookup {
 
     private static func firstConId(from url: URL) async throws -> Int {
         var req = URLRequest(url: url); req.timeoutInterval = 8
-        let (data, _) = try await insecureLocalSession.data(for: req)
+        let (data, resp) = try await insecureLocalSession.data(for: req)
+        if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
+            if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let msg = obj["error"] as? String {
+                throw LookupError.server(msg)
+            }
+            throw LookupError.server("HTTP \(http.statusCode)")
+        }
 
         guard
             let arr   = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
@@ -240,7 +261,7 @@ enum ContractLookup {
         cacheQueue.sync { cache["\(type)|\(key)"] = id }
     }
 
-    enum LookupError: Error { case notFound }
+    enum LookupError: Error { case notFound, server(String) }
 }   // ← end of enum ContractLookup
 
 // ----------------------------------------------------------------------
