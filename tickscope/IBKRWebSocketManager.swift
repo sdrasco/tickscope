@@ -36,11 +36,19 @@ final class IBKRWebSocketManager: ObservableObject {
 
     private var webSocketTask: URLSessionWebSocketTask?
 
+    /// Session token returned by the Gateway `system` topic
+    private var sessionToken: String?
+
+    /// Market-data subscriptions waiting for a session token
+    private var pendingConIds: [Int] = []
+
     // MARK: Public API
     func connect(conIds: [Int]) {
         if webSocketTask != nil { disconnect() }
         clearAllData()
         connectionError = nil
+        sessionToken = nil
+        pendingConIds = conIds
         status = .connecting
 
         let session = URLSession(configuration: .default,
@@ -53,11 +61,9 @@ final class IBKRWebSocketManager: ObservableObject {
         webSocketTask?.resume()
         status = .connected
 
-        send(json: [
-            "destination": "MarketData",
-            "conids": conIdString,
-            "fields": defaultFieldIDs
-        ])
+        if sessionToken != nil {
+            subscribe(conIds: conIds)
+        }
         listen()
     }
 
@@ -70,6 +76,8 @@ final class IBKRWebSocketManager: ObservableObject {
         }
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
+        sessionToken = nil
+        pendingConIds.removeAll()
         status = .disconnected
     }
 
@@ -109,6 +117,21 @@ final class IBKRWebSocketManager: ObservableObject {
         webSocketTask?.send(.string(str)) { if let e = $0 { self.connectionError = e } }
     }
 
+    /// Send a market-data subscription once a session token exists.
+    private func subscribe(conIds: [Int]) {
+        guard let sessionToken else {
+            pendingConIds = conIds
+            return
+        }
+        let conIdString = conIds.map(String.init).joined(separator: ",")
+        send(json: [
+            "destination": "MarketData",
+            "conids": conIdString,
+            "fields": defaultFieldIDs,
+            "session": sessionToken
+        ])
+    }
+
     private func trimOldData(now: Date = .init()) {
         let cut = now.addingTimeInterval(-retentionSeconds)
         trades.removeAll  { $0.timestamp < cut }
@@ -120,11 +143,21 @@ final class IBKRWebSocketManager: ObservableObject {
     private func handleMarketData(_ text: String) {
         guard let data = text.data(using: .utf8) else { return }
 
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let topic = obj["topic"] as? String, topic == "system",
+               let token = obj["success"] as? String {
+                sessionToken = token
+                if !pendingConIds.isEmpty {
+                    subscribe(conIds: pendingConIds)
+                    pendingConIds.removeAll()
+                }
+                return
+            }
+            parseMarketData(obj); trimOldData(); return
+        }
+
         if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             arr.forEach(parseMarketData); trimOldData(); return
-        }
-        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            parseMarketData(obj); trimOldData(); return
         }
 
         print("❌ Un-parsable frame:", text.prefix(120))
