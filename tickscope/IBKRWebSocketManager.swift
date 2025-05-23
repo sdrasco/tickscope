@@ -41,13 +41,14 @@ final class IBKRWebSocketManager: ObservableObject {
                                  delegateQueue: nil)
         let url = Config.websocketURL
         webSocketTask = session.webSocketTask(with: url)
-        print("🌐 WS connecting to", url, "for", conIds)
+        let conIdString = conIds.map(String.init).joined(separator: ",")
+        print("🌐 WS connecting to", url, "for", conIdString)
         webSocketTask?.resume()
         status = .connected
 
         send(json: [
             "destination": "MarketData",
-            "conids": conIds.map(String.init),
+            "conids": conIdString,
             "fields": defaultFieldIDs
         ])
         listen()
