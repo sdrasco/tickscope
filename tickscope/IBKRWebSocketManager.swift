@@ -111,10 +111,9 @@ final class IBKRWebSocketManager: ObservableObject {
         }
     }
 
-    private func send(json: [String: Any]) {
-        guard let data = try? JSONSerialization.data(withJSONObject: json),
-              let str  = String(data: data, encoding: .utf8) else { return }
-        webSocketTask?.send(.string(str)) { if let e = $0 { self.connectionError = e } }
+    /// Send a raw text frame to the WebSocket.
+    private func sendText(_ text: String) {
+        webSocketTask?.send(.string(text)) { if let e = $0 { self.connectionError = e } }
     }
 
     /// Send a market-data subscription once a session token exists.
@@ -124,12 +123,8 @@ final class IBKRWebSocketManager: ObservableObject {
             return
         }
         let conIdString = conIds.map(String.init).joined(separator: ",")
-        send(json: [
-            "destination": "MarketData",
-            "conids": conIdString,
-            "fields": defaultFieldIDs,
-            "session": sessionToken
-        ])
+        let frame = "smd+\(conIdString)+\(defaultFieldIDs)+\(sessionToken)"
+        sendText(frame)
     }
 
     private func trimOldData(now: Date = .init()) {
