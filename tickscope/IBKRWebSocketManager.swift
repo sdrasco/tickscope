@@ -111,10 +111,20 @@ final class IBKRWebSocketManager: ObservableObject {
         }
     }
 
-    private func send(json: [String: Any]) {
-        guard let data = try? JSONSerialization.data(withJSONObject: json),
-              let str  = String(data: data, encoding: .utf8) else { return }
-        webSocketTask?.send(.string(str)) { if let e = $0 { self.connectionError = e } }
+    /// Helper to send a STOMP frame with a JSON body.
+    private func sendStomp(command: String,
+                           headers: [String: String],
+                           body: [String: Any]?) {
+        var frame = "\(command)\n"
+        for (key, value) in headers { frame += "\(key):\(value)\n" }
+        frame += "\n"
+        if let body,
+           let data = try? JSONSerialization.data(withJSONObject: body),
+           let str = String(data: data, encoding: .utf8) {
+            frame += str
+        }
+        frame += "\u{0000}"
+        webSocketTask?.send(.string(frame)) { if let e = $0 { self.connectionError = e } }
     }
 
     /// Send a market-data subscription once a session token exists.
@@ -124,12 +134,11 @@ final class IBKRWebSocketManager: ObservableObject {
             return
         }
         let conIdString = conIds.map(String.init).joined(separator: ",")
-        send(json: [
-            "destination": "MarketData",
-            "conids": conIdString,
-            "fields": defaultFieldIDs,
-            "session": sessionToken
-        ])
+        let body: [String: Any] = ["conids": conIdString, "fields": defaultFieldIDs]
+        sendStomp(command: "SEND",
+                  headers: ["destination": "MarketData",
+                            "session": sessionToken],
+                  body: body)
     }
 
     private func trimOldData(now: Date = .init()) {
