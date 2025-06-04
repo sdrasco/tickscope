@@ -59,7 +59,13 @@ final class IBKRWebSocketManager: ObservableObject {
         let conIdString = conIds.map(String.init).joined(separator: ",")
         print("🌐 WS connecting to", url, "for", conIdString)
         webSocketTask?.resume()
-        status = .connected
+
+        // Initial STOMP handshake
+        let connect = "CONNECT\naccept-version:1.2\nheart-beat:10000,10000\n\n\0"
+        webSocketTask?.send(.string(connect)) { if let e = $0 { self.connectionError = e } }
+        sendStomp(command: "SUBSCRIBE",
+                  headers: ["destination": "System", "id": "system"],
+                  body: nil)
 
         if sessionToken != nil {
             subscribe(conIds: conIds)
@@ -160,6 +166,7 @@ final class IBKRWebSocketManager: ObservableObject {
                     subscribe(conIds: pendingConIds)
                     pendingConIds.removeAll()
                 }
+                status = .connected
                 return
             }
             parseMarketData(obj); trimOldData(); return
