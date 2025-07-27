@@ -1,7 +1,15 @@
+//
+//  tickscopeTests.swift
+//  tickscopeTests
+//
+//  Created by sdrasco on 27/07/2025.
+//
+
 import XCTest
 @testable import tickscope
 
 final class TickscopeTests: XCTestCase {
+
     func testFormatOptionDetailsValid() {
         let view = ContentView()
         let result = view.formatOptionDetails(from: "AAPL240621C00125000")
@@ -22,27 +30,27 @@ final class TickscopeTests: XCTestCase {
 
     func testOptionPriceRangeEdgeCases() {
         let manager = WebSocketManager()
-        var view = OptionPriceChartView(webSocketManager: manager)
+        let view = OptionPriceChartView(webSocketManager: manager)
         // No data
         XCTAssertEqual(view.optionPriceRange(), 0...1)
 
         // Single price
         manager.optionTradePrices = [Trade(price: 5.0, timestamp: Date())]
-        var range = view.optionPriceRange()
-        XCTAssertEqual(range.lowerBound, 4.5, accuracy: 0.0001)
-        XCTAssertEqual(range.upperBound, 5.5, accuracy: 0.0001)
+        let range1 = view.optionPriceRange()
+        XCTAssertEqual(range1.lowerBound, 4.5, accuracy: 0.0001)
+        XCTAssertEqual(range1.upperBound, 5.5, accuracy: 0.0001)
 
         // Multiple prices
         manager.optionTradePrices = [Trade(price: 10.0, timestamp: Date()),
                                      Trade(price: 20.0, timestamp: Date())]
-        range = view.optionPriceRange()
-        XCTAssertEqual(range.lowerBound, 9.0, accuracy: 0.0001)
-        XCTAssertEqual(range.upperBound, 21.0, accuracy: 0.0001)
+        let range2 = view.optionPriceRange()
+        XCTAssertEqual(range2.lowerBound, 9.0, accuracy: 0.0001)
+        XCTAssertEqual(range2.upperBound, 21.0, accuracy: 0.0001)
     }
 
     func testOptionVolumeRangeEdgeCases() {
         let manager = WebSocketManager()
-        var view = VolumeOptionChartView(webSocketManager: manager)
+        let view = VolumeOptionChartView(webSocketManager: manager)
         // No data
         XCTAssertEqual(view.optionVolumeRange(), 0...10)
 
