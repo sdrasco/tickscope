@@ -19,7 +19,7 @@ struct VolumeStockChartView: View {
                 .padding()
 
             Chart {
-                ForEach(webSocketManager.stockVolumes, id: \.timestamp) { volume in
+                ForEach(webSocketManager.stockVolumes, id: \.id) { volume in
                     BarMark(
                         x: .value("Time", volume.timestamp),
                         y: .value("Volume", volume.volume)
