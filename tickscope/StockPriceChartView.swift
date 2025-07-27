@@ -11,7 +11,7 @@ struct StockPriceChartView: View {
                 .padding()
 
             Chart {
-                ForEach(webSocketManager.tradePrices, id: \.timestamp) { trade in
+                ForEach(webSocketManager.tradePrices, id: \.id) { trade in
                     PointMark(
                         x: .value("Time", trade.timestamp),
                         y: .value("Price", trade.price)

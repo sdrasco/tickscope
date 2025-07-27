@@ -11,7 +11,7 @@ struct BidAskStockChartView: View {
                 .padding()
 
             Chart {
-                ForEach(webSocketManager.bidAskStockPrices, id: \.timestamp) { quote in
+                ForEach(webSocketManager.bidAskStockPrices, id: \.id) { quote in
                     PointMark( // ✅ Marker for Bids
                         x: .value("Time", quote.timestamp),
                         y: .value("Bid", quote.bidPrice)

@@ -18,7 +18,7 @@ struct OptionPriceChartView: View {
                 .padding()
 
             Chart {
-                ForEach(webSocketManager.optionTradePrices, id: \.timestamp) { trade in
+                ForEach(webSocketManager.optionTradePrices, id: \.id) { trade in
                     PointMark(
                         x: .value("Time", trade.timestamp),
                         y: .value("Price", trade.price)
