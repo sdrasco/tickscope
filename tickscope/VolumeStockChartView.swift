@@ -27,6 +27,20 @@ struct VolumeStockChartView: View {
                     .foregroundStyle(.blue)
                 }
             }
+            .chartYScale(domain: stockVolumeRange())
         }
+    }
+
+    private func stockVolumeRange() -> ClosedRange<Int> {
+        let volumes = webSocketManager.stockVolumes.map { $0.volume }
+
+        guard let maxVolume = volumes.max(), maxVolume > 0 else {
+            return 0...10 // Default range if no data or all zero
+        }
+
+        let padding = max(Int(Double(maxVolume) * 0.1), 1)
+        let upperBound = maxVolume + padding
+
+        return 0...upperBound
     }
 }
