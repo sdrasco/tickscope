@@ -51,6 +51,8 @@ class WebSocketManager: ObservableObject {
 
     /// ✅ Calls `resetData()` before connecting to a new ticker
     func connect(stockTicker: String, optionTicker: String) {
+        // Cancel any existing tasks so they don't continue running when reconnecting
+        disconnect()
         resetData() // Clear all data before reconnecting
 
         connectStockWebSocket(stockTicker: stockTicker)
@@ -227,7 +229,9 @@ class WebSocketManager: ObservableObject {
 
     func disconnect() {
         stockWebSocket?.cancel()
+        stockWebSocket = nil
         optionWebSocket?.cancel()
+        optionWebSocket = nil
     }
     
     private func updateOptionChartsTimestamp() {
