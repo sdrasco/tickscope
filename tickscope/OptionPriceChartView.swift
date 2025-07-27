@@ -30,7 +30,7 @@ struct OptionPriceChartView: View {
         }
     }
 
-    private func optionPriceRange() -> ClosedRange<Double> {
+    func optionPriceRange() -> ClosedRange<Double> {
         let prices = webSocketManager.optionTradePrices.map { $0.price }
         guard let minPrice = prices.min(),
               let maxPrice = prices.max() else {

@@ -28,7 +28,7 @@ struct VolumeOptionChartView: View {
         }
     }
     
-    private func optionVolumeRange() -> ClosedRange<Int> {
+    func optionVolumeRange() -> ClosedRange<Int> {
         let volumes = webSocketManager.optionVolumes.map { $0.volume }
         
         guard let maxVolume = volumes.max(), maxVolume > 0 else {

@@ -7,70 +7,126 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		90191C882D801E1300C8E23E /* tickscope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tickscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+               90191C882D801E1300C8E23E /* tickscope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tickscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+               90191D0C2D801E1300C8E23E /* tickscopeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = tickscopeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		90191C8A2D801E1300C8E23E /* tickscope */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = tickscope;
-			sourceTree = "<group>";
-		};
+                90191C8A2D801E1300C8E23E /* tickscope */ = {
+                        isa = PBXFileSystemSynchronizedRootGroup;
+                        path = tickscope;
+                        sourceTree = "<group>";
+                };
+               90191D0B2D801E1300C8E23E /* tickscopeTests */ = {
+                        isa = PBXFileSystemSynchronizedRootGroup;
+                        path = tickscopeTests;
+                        sourceTree = "<group>";
+                };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		90191C852D801E1300C8E23E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+                90191C852D801E1300C8E23E /* Frameworks */ = {
+                        isa = PBXFrameworksBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
+               90191D0E2D801E1300C8E23E /* Frameworks */ = {
+                        isa = PBXFrameworksBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		90191C7F2D801E1300C8E23E = {
-			isa = PBXGroup;
-			children = (
-				90191C8A2D801E1300C8E23E /* tickscope */,
-				90191C892D801E1300C8E23E /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		90191C892D801E1300C8E23E /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				90191C882D801E1300C8E23E /* tickscope.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
+                90191C7F2D801E1300C8E23E = {
+                        isa = PBXGroup;
+                        children = (
+                                90191C8A2D801E1300C8E23E /* tickscope */,
+                                90191D0B2D801E1300C8E23E /* tickscopeTests */,
+                                90191C892D801E1300C8E23E /* Products */,
+                        );
+                        sourceTree = "<group>";
+                };
+                90191C892D801E1300C8E23E /* Products */ = {
+                        isa = PBXGroup;
+                        children = (
+                                90191C882D801E1300C8E23E /* tickscope.app */,
+                                90191D0C2D801E1300C8E23E /* tickscopeTests.xctest */,
+                        );
+                        name = Products;
+                        sourceTree = "<group>";
+                };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		90191C872D801E1300C8E23E /* tickscope */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 90191C972D801E1300C8E23E /* Build configuration list for PBXNativeTarget "tickscope" */;
-			buildPhases = (
-				90191C842D801E1300C8E23E /* Sources */,
-				90191C852D801E1300C8E23E /* Frameworks */,
-				90191C862D801E1300C8E23E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				90191C8A2D801E1300C8E23E /* tickscope */,
-			);
-			name = tickscope;
-			packageProductDependencies = (
-			);
-			productName = tickscope;
-			productReference = 90191C882D801E1300C8E23E /* tickscope.app */;
-			productType = "com.apple.product-type.application";
-		};
+                90191C872D801E1300C8E23E /* tickscope */ = {
+                        isa = PBXNativeTarget;
+                        buildConfigurationList = 90191C972D801E1300C8E23E /* Build configuration list for PBXNativeTarget "tickscope" */;
+                        buildPhases = (
+                                90191C842D801E1300C8E23E /* Sources */,
+                                90191C852D801E1300C8E23E /* Frameworks */,
+                                90191C862D801E1300C8E23E /* Resources */,
+                        );
+                        buildRules = (
+                        );
+                        dependencies = (
+                        );
+                        fileSystemSynchronizedGroups = (
+                                90191C8A2D801E1300C8E23E /* tickscope */,
+                        );
+                        name = tickscope;
+                        packageProductDependencies = (
+                        );
+                        productName = tickscope;
+                        productReference = 90191C882D801E1300C8E23E /* tickscope.app */;
+                        productType = "com.apple.product-type.application";
+                };
+               90191D132D801E1300C8E23E /* tickscopeTests */ = {
+                        isa = PBXNativeTarget;
+                        buildConfigurationList = 90191D122D801E1300C8E23E /* Build configuration list for PBXNativeTarget "tickscopeTests" */;
+                        buildPhases = (
+                                90191D0D2D801E1300C8E23E /* Sources */,
+                                90191D0E2D801E1300C8E23E /* Frameworks */,
+                                90191D0F2D801E1300C8E23E /* Resources */,
+                        );
+                        buildRules = (
+                        );
+                        dependencies = (
+                                90191D152D801E1300C8E23E /* PBXTargetDependency */,
+                        );
+                        fileSystemSynchronizedGroups = (
+                                90191D0B2D801E1300C8E23E /* tickscopeTests */,
+                        );
+                        name = tickscopeTests;
+                        packageProductDependencies = (
+                        );
+                        productName = tickscopeTests;
+                        productReference = 90191D0C2D801E1300C8E23E /* tickscopeTests.xctest */;
+                        productType = "com.apple.product-type.bundle.unit-test";
+                };
 /* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+               90191D142D801E1300C8E23E /* PBXContainerItemProxy */ = {
+                        isa = PBXContainerItemProxy;
+                        containerPortal = 90191C802D801E1300C8E23E /* Project object */;
+                        proxyType = 1;
+                        remoteGlobalIDString = 90191C872D801E1300C8E23E;
+                        remoteInfo = tickscope;
+                };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+               90191D152D801E1300C8E23E /* PBXTargetDependency */ = {
+                        isa = PBXTargetDependency;
+                        target = 90191C872D801E1300C8E23E /* tickscope */;
+                        targetProxy = 90191D142D801E1300C8E23E /* PBXContainerItemProxy */;
+                };
+/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		90191C802D801E1300C8E23E /* Project object */ = {
@@ -79,11 +135,14 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
-				TargetAttributes = {
-					90191C872D801E1300C8E23E = {
-						CreatedOnToolsVersion = 16.2;
-					};
-				};
+                                TargetAttributes = {
+                                        90191C872D801E1300C8E23E = {
+                                                CreatedOnToolsVersion = 16.2;
+                                        };
+                                        90191D132D801E1300C8E23E = {
+                                                CreatedOnToolsVersion = 16.2;
+                                        };
+                                };
 			};
 			buildConfigurationList = 90191C832D801E1300C8E23E /* Build configuration list for PBXProject "tickscope" */;
 			developmentRegion = en;
@@ -98,30 +157,45 @@
 			productRefGroup = 90191C892D801E1300C8E23E /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			targets = (
-				90191C872D801E1300C8E23E /* tickscope */,
-			);
+                        targets = (
+                                90191C872D801E1300C8E23E /* tickscope */,
+                                90191D132D801E1300C8E23E /* tickscopeTests */,
+                        );
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		90191C862D801E1300C8E23E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+                90191C862D801E1300C8E23E /* Resources */ = {
+                        isa = PBXResourcesBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
+               90191D0F2D801E1300C8E23E /* Resources */ = {
+                        isa = PBXResourcesBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		90191C842D801E1300C8E23E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+                90191C842D801E1300C8E23E /* Sources */ = {
+                        isa = PBXSourcesBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
+               90191D0D2D801E1300C8E23E /* Sources */ = {
+                        isa = PBXSourcesBuildPhase;
+                        buildActionMask = 2147483647;
+                        files = (
+                        );
+                        runOnlyForDeploymentPostprocessing = 0;
+                };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -270,11 +344,11 @@
 			};
 			name = Debug;
 		};
-		90191C992D801E1300C8E23E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+                90191C992D801E1300C8E23E /* Release */ = {
+                        isa = XCBuildConfiguration;
+                        buildSettings = {
+                                ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                                ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = tickscope/tickscope.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -293,10 +367,32 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.tickscope.tickscope;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
+                                SWIFT_VERSION = 5.0;
+                        };
+                        name = Release;
+                };
+               90191D102D801E1300C8E23E /* Debug */ = {
+                        isa = XCBuildConfiguration;
+                        buildSettings = {
+                                BUNDLE_LOADER = "$(TEST_HOST)";
+                                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tickscope.app/Contents/MacOS/tickscope";
+                                PRODUCT_BUNDLE_IDENTIFIER = com.tickscope.tickscopeTests;
+                                GENERATE_INFOPLIST_FILE = YES;
+                                SWIFT_VERSION = 5.0;
+                        };
+                        name = Debug;
+                };
+               90191D112D801E1300C8E23E /* Release */ = {
+                        isa = XCBuildConfiguration;
+                        buildSettings = {
+                                BUNDLE_LOADER = "$(TEST_HOST)";
+                                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tickscope.app/Contents/MacOS/tickscope";
+                                PRODUCT_BUNDLE_IDENTIFIER = com.tickscope.tickscopeTests;
+                                GENERATE_INFOPLIST_FILE = YES;
+                                SWIFT_VERSION = 5.0;
+                        };
+                        name = Release;
+                };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -309,15 +405,24 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		90191C972D801E1300C8E23E /* Build configuration list for PBXNativeTarget "tickscope" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				90191C982D801E1300C8E23E /* Debug */,
-				90191C992D801E1300C8E23E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
+                90191C972D801E1300C8E23E /* Build configuration list for PBXNativeTarget "tickscope" */ = {
+                        isa = XCConfigurationList;
+                        buildConfigurations = (
+                                90191C982D801E1300C8E23E /* Debug */,
+                                90191C992D801E1300C8E23E /* Release */,
+                        );
+                        defaultConfigurationIsVisible = 0;
+                        defaultConfigurationName = Release;
+                };
+               90191D122D801E1300C8E23E /* Build configuration list for PBXNativeTarget "tickscopeTests" */ = {
+                        isa = XCConfigurationList;
+                        buildConfigurations = (
+                                90191D102D801E1300C8E23E /* Debug */,
+                                90191D112D801E1300C8E23E /* Release */,
+                        );
+                        defaultConfigurationIsVisible = 0;
+                        defaultConfigurationName = Release;
+                };
 /* End XCConfigurationList section */
 	};
 	rootObject = 90191C802D801E1300C8E23E /* Project object */;
