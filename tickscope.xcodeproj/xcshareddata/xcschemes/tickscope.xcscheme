@@ -7,20 +7,34 @@
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
       <BuildActionEntries>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "90191C872D801E1300C8E23E"
-               BuildableName = "tickscope.app"
-               BlueprintName = "tickscope"
-               ReferencedContainer = "container:tickscope.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
+        <BuildActionEntry
+           buildForTesting = "YES"
+           buildForRunning = "YES"
+           buildForProfiling = "YES"
+           buildForArchiving = "YES"
+           buildForAnalyzing = "YES">
+           <BuildableReference
+              BuildableIdentifier = "primary"
+              BlueprintIdentifier = "90191C872D801E1300C8E23E"
+              BuildableName = "tickscope.app"
+              BlueprintName = "tickscope"
+              ReferencedContainer = "container:tickscope.xcodeproj">
+           </BuildableReference>
+        </BuildActionEntry>
+        <BuildActionEntry
+           buildForTesting = "YES"
+           buildForRunning = "NO"
+           buildForProfiling = "NO"
+           buildForArchiving = "NO"
+           buildForAnalyzing = "NO">
+           <BuildableReference
+              BuildableIdentifier = "primary"
+              BlueprintIdentifier = "90191D132D801E1300C8E23E"
+              BuildableName = "tickscopeTests.xctest"
+              BlueprintName = "tickscopeTests"
+              ReferencedContainer = "container:tickscope.xcodeproj">
+           </BuildableReference>
+        </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

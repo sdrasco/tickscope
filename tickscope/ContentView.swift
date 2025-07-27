@@ -73,12 +73,12 @@ struct ContentView: View {
         }
     }
     
-    private func extractStockSymbol(from optionTicker: String) -> String {
+    func extractStockSymbol(from optionTicker: String) -> String {
         let letters = optionTicker.prefix { $0.isLetter }
         return String(letters)
     }
 
-    private func formatOptionDetails(from ticker: String) -> String {
+    func formatOptionDetails(from ticker: String) -> String {
         let pattern = #"^([A-Z]+)(\d{6})([CP])(\d{8})$"#
         let regex = try? NSRegularExpression(pattern: pattern)
         let nsTicker = ticker as NSString
