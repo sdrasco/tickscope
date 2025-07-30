@@ -19,6 +19,12 @@ struct StockPriceChartView: View {
                     .foregroundStyle(.blue)
                 }
             }
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .minute)) { value in
+                    AxisGridLine()
+                    AxisValueLabel(format: .dateTime.hour().minute())
+                }
+            }
             .chartYScale(domain: priceRange())
         }
     }
