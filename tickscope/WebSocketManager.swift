@@ -29,6 +29,16 @@ class WebSocketManager: ObservableObject {
     @Published var optionTradePrices: [Trade] = []
     @Published var bidAskOptionPrices: [BidAskQuote] = []
     @Published var optionVolumes: [VolumeData] = []
+    @Published var optionPricingInput = OptionPricingInput(
+        spot: 0.0,
+        strike: 0.0,
+        timeToExpiry: 0.0,
+        impliedVol: 0.0,
+        riskFreeRate: 0.0,
+        optionType: .call,
+        dividendYield: nil
+    )
+    var optionPricingPublisher: Published<OptionPricingInput>.Publisher { $optionPricingInput }
 
     private var stockWebSocket: URLSessionWebSocketTask?
     private var optionWebSocket: URLSessionWebSocketTask?
@@ -46,6 +56,15 @@ class WebSocketManager: ObservableObject {
 
             self.latestStockMessage = "No stock data yet"
             self.latestOptionMessage = "No option data yet"
+            self.optionPricingInput = OptionPricingInput(
+                spot: 0.0,
+                strike: 0.0,
+                timeToExpiry: 0.0,
+                impliedVol: 0.0,
+                riskFreeRate: 0.0,
+                optionType: .call,
+                dividendYield: nil
+            )
         }
     }
 
@@ -158,6 +177,7 @@ class WebSocketManager: ObservableObject {
                                 DispatchQueue.main.async {
                                     self.tradePrices.append(trade)
                                     self.stockVolumes.append(volumeData) //
+                                    self.optionPricingInput.spot = price
 
                                     // Keep only the last X seconds of data
                                     let cutoffTime = Date().addingTimeInterval(-Config.stockDataRetention)
@@ -190,6 +210,27 @@ class WebSocketManager: ObservableObject {
         do {
             if let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] {
                 for message in jsonArray {
+                    if let iv = message["iv"] as? Double {
+                        DispatchQueue.main.async { self.optionPricingInput.impliedVol = iv }
+                    }
+                    if let strike = message["k"] as? Double {
+                        DispatchQueue.main.async { self.optionPricingInput.strike = strike }
+                    }
+                    if let expiry = message["x"] as? String,
+                       let date = ISO8601DateFormatter().date(from: expiry) {
+                        let t = max(0, date.timeIntervalSince(Date()) / (365.0 * 24.0 * 3600.0))
+                        DispatchQueue.main.async { self.optionPricingInput.timeToExpiry = t }
+                    }
+                    if let type = message["c"] as? String {
+                        let optType: OptionType = type.uppercased() == "C" ? .call : .put
+                        DispatchQueue.main.async { self.optionPricingInput.optionType = optType }
+                    }
+                    if let rate = message["r"] as? Double {
+                        DispatchQueue.main.async { self.optionPricingInput.riskFreeRate = rate }
+                    }
+                    if let div = message["d"] as? Double {
+                        DispatchQueue.main.async { self.optionPricingInput.dividendYield = div }
+                    }
                     if let event = message["ev"] as? String {
                         switch event {
                         case "T": // Trade event (captures volume)
