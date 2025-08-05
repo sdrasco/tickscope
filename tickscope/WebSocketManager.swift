@@ -1,5 +1,22 @@
 import Foundation
 
+// FFI declarations for native pricing models
+@_silgen_name("baw_price_ffi")
+func baw_price_ffi(_ input: UnsafePointer<COptionPricingInput>) -> Double
+
+@_silgen_name("binomial_price_ffi")
+func binomial_price_ffi(_ input: UnsafePointer<COptionPricingInput>, _ steps: Int32) -> Double
+
+struct COptionPricingInput {
+    var spot: Double
+    var strike: Double
+    var timeToExpiry: Double
+    var impliedVol: Double
+    var riskFreeRate: Double
+    var optionType: Int32
+    var dividendYield: Double
+}
+
 struct Trade: Identifiable {
     let id = UUID()
     let price: Double
@@ -19,6 +36,13 @@ struct VolumeData: Identifiable {
     let timestamp: Date
 }
 
+struct ModelPricePoint: Identifiable {
+    let id = UUID()
+    let model: String
+    let price: Double
+    let timestamp: Date
+}
+
 class WebSocketManager: ObservableObject {
     @Published var latestStockMessage: String = "No stock data yet"
     @Published var tradePrices: [Trade] = []
@@ -29,6 +53,7 @@ class WebSocketManager: ObservableObject {
     @Published var optionTradePrices: [Trade] = []
     @Published var bidAskOptionPrices: [BidAskQuote] = []
     @Published var optionVolumes: [VolumeData] = []
+    @Published var modelPriceSeries: [ModelPricePoint] = []
     @Published var optionPricingInput = OptionPricingInput(
         spot: 0.0,
         strike: 0.0,
@@ -43,6 +68,7 @@ class WebSocketManager: ObservableObject {
     private var stockWebSocket: URLSessionWebSocketTask?
     private var optionWebSocket: URLSessionWebSocketTask?
     private let session = URLSession(configuration: .default)
+    private var modelPriceTimer: Timer?
 
     /// ✅ Centralized function to reset all chart data
     private func resetData() {
@@ -53,6 +79,7 @@ class WebSocketManager: ObservableObject {
             self.bidAskOptionPrices.removeAll()
             self.stockVolumes.removeAll()
             self.optionVolumes.removeAll()
+            self.modelPriceSeries.removeAll()
 
             self.latestStockMessage = "No stock data yet"
             self.latestOptionMessage = "No option data yet"
@@ -65,6 +92,8 @@ class WebSocketManager: ObservableObject {
                 optionType: .call,
                 dividendYield: nil
             )
+            self.modelPriceTimer?.invalidate()
+            self.modelPriceTimer = nil
         }
     }
 
@@ -76,6 +105,7 @@ class WebSocketManager: ObservableObject {
 
         connectStockWebSocket(stockTicker: stockTicker)
         connectOptionWebSocket(optionTicker: optionTicker)
+        startModelPriceTimer()
     }
 
     private func connectStockWebSocket(stockTicker: String) {
@@ -96,6 +126,42 @@ class WebSocketManager: ObservableObject {
         authenticate(webSocket: optionWebSocket!)
         subscribeToOptionData(ticker: optionTicker)
         receiveOptionMessages()
+    }
+
+    private func startModelPriceTimer() {
+        modelPriceTimer?.invalidate()
+        modelPriceTimer = Timer.scheduledTimer(withTimeInterval: Config.modelPriceRefresh, repeats: true) { [weak self] _ in
+            self?.updateModelPrices()
+        }
+    }
+
+    private func updateModelPrices() {
+        let input = optionPricingInput
+        let cInput = COptionPricingInput(
+            spot: input.spot,
+            strike: input.strike,
+            timeToExpiry: input.timeToExpiry,
+            impliedVol: input.impliedVol,
+            riskFreeRate: input.riskFreeRate,
+            optionType: input.optionType == .call ? 0 : 1,
+            dividendYield: input.dividendYield ?? 0.0
+        )
+
+        var baw: Double = 0.0
+        var bin: Double = 0.0
+        withUnsafePointer(to: cInput) { ptr in
+            baw = baw_price_ffi(ptr)
+            bin = binomial_price_ffi(ptr, 200)
+        }
+
+        let now = Date()
+        DispatchQueue.main.async {
+            self.modelPriceSeries.append(ModelPricePoint(model: "BAW", price: baw, timestamp: now))
+            self.modelPriceSeries.append(ModelPricePoint(model: "Binomial", price: bin, timestamp: now))
+
+            let cutoff = Date().addingTimeInterval(-Config.optionDataRetention)
+            self.modelPriceSeries.removeAll { $0.timestamp < cutoff }
+        }
     }
 
     private func authenticate(webSocket: URLSessionWebSocketTask) {
@@ -273,6 +339,8 @@ class WebSocketManager: ObservableObject {
         stockWebSocket = nil
         optionWebSocket?.cancel()
         optionWebSocket = nil
+        modelPriceTimer?.invalidate()
+        modelPriceTimer = nil
     }
     
     private func updateOptionChartsTimestamp() {

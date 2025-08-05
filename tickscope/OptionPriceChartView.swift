@@ -25,7 +25,17 @@ struct OptionPriceChartView: View {
                     )
                     .foregroundStyle(.purple)
                 }
+                ForEach(webSocketManager.modelPriceSeries) { point in
+                    LineMark(
+                        x: .value("Time", point.timestamp),
+                        y: .value("Price", point.price)
+                    )
+                    .foregroundStyle(by: .value("Model", point.model))
+                    .lineStyle(point.model == "BAW" ? StrokeStyle(lineWidth: 2, dash: [5]) : StrokeStyle(lineWidth: 2))
+                }
             }
+            .chartForegroundStyleScale(["BAW": .red, "Binomial": .blue])
+            .chartLegend(position: .bottom)
             .chartXAxis {
                 AxisMarks(values: .stride(by: .minute)) { value in
                     AxisGridLine()
@@ -37,7 +47,8 @@ struct OptionPriceChartView: View {
     }
 
     func optionPriceRange() -> ClosedRange<Double> {
-        let prices = webSocketManager.optionTradePrices.map { $0.price }
+        let prices = webSocketManager.optionTradePrices.map { $0.price } +
+                     webSocketManager.modelPriceSeries.map { $0.price }
         guard let minPrice = prices.min(),
               let maxPrice = prices.max() else {
             return 0...1 // default if no data is present

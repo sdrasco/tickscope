@@ -10,4 +10,5 @@ struct Config {
     
     static let stockDataRetention: TimeInterval = 180   // 300 = 5 minutes
     static let optionDataRetention: TimeInterval = 300 // 1800 = 30 minutes
+    static let modelPriceRefresh: TimeInterval = 5      // refresh interval for model overlays
 }
