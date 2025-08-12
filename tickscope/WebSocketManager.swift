@@ -34,6 +34,19 @@ class WebSocketManager: ObservableObject {
     private var optionWebSocket: URLSessionWebSocketTask?
     private let session = URLSession(configuration: .default)
 
+    /// Removes data points that fall outside the visible range for any chart.
+    private func pruneData() {
+        let stockCutoff = Date().addingTimeInterval(-Config.stockDataRetention)
+        tradePrices.removeAll { $0.timestamp < stockCutoff }
+        bidAskStockPrices.removeAll { $0.timestamp < stockCutoff }
+        stockVolumes.removeAll { $0.timestamp < stockCutoff }
+
+        let optionCutoff = Date().addingTimeInterval(-Config.optionDataRetention)
+        optionTradePrices.removeAll { $0.timestamp < optionCutoff }
+        bidAskOptionPrices.removeAll { $0.timestamp < optionCutoff }
+        optionVolumes.removeAll { $0.timestamp < optionCutoff }
+    }
+
     /// ✅ Centralized function to reset all chart data
     private func resetData() {
         DispatchQueue.main.async {
@@ -157,12 +170,8 @@ class WebSocketManager: ObservableObject {
 
                                 DispatchQueue.main.async {
                                     self.tradePrices.append(trade)
-                                    self.stockVolumes.append(volumeData) //
-
-                                    // Keep only the last X seconds of data
-                                    let cutoffTime = Date().addingTimeInterval(-Config.stockDataRetention)
-                                    self.tradePrices.removeAll { $0.timestamp < cutoffTime }
-                                    self.stockVolumes.removeAll { $0.timestamp < cutoffTime }
+                                    self.stockVolumes.append(volumeData)
+                                    self.pruneData()
                                 }
                             }
                         case "Q": // Quote event
@@ -170,7 +179,7 @@ class WebSocketManager: ObservableObject {
                                 let quote = BidAskQuote(bidPrice: bid, askPrice: ask, timestamp: Date())
                                 DispatchQueue.main.async {
                                     self.bidAskStockPrices.append(quote)
-                                    self.bidAskStockPrices.removeAll { $0.timestamp < Date().addingTimeInterval(-Config.stockDataRetention) }
+                                    self.pruneData()
                                 }
                             }
                         default:
@@ -179,7 +188,6 @@ class WebSocketManager: ObservableObject {
                     }
                 }
             }
-            updateOptionChartsTimestamp()
         } catch {
             print("Failed to parse stock message: \(error)")
         }
@@ -201,11 +209,7 @@ class WebSocketManager: ObservableObject {
                                 DispatchQueue.main.async {
                                     self.optionTradePrices.append(trade)
                                     self.optionVolumes.append(volumeData)
-
-                                    // Keep only the last X seconds of data
-                                    let cutoffTime = Date().addingTimeInterval(-Config.optionDataRetention)
-                                    self.optionTradePrices.removeAll { $0.timestamp < cutoffTime }
-                                    self.optionVolumes.removeAll { $0.timestamp < cutoffTime }
+                                    self.pruneData()
                                 }
                             }
                         case "Q": // Quote event
@@ -213,7 +217,7 @@ class WebSocketManager: ObservableObject {
                                 let quote = BidAskQuote(bidPrice: bid, askPrice: ask, timestamp: Date())
                                 DispatchQueue.main.async {
                                     self.bidAskOptionPrices.append(quote)
-                                    self.bidAskOptionPrices.removeAll { $0.timestamp < Date().addingTimeInterval(-Config.optionDataRetention) }
+                                    self.pruneData()
                                 }
                             }
                         default:
@@ -232,15 +236,5 @@ class WebSocketManager: ObservableObject {
         stockWebSocket = nil
         optionWebSocket?.cancel()
         optionWebSocket = nil
-    }
-    
-    private func updateOptionChartsTimestamp() {
-        let cutoffTime = Date().addingTimeInterval(-Config.optionDataRetention)
-    
-        DispatchQueue.main.async {
-            self.optionTradePrices.removeAll { $0.timestamp < cutoffTime }
-            self.optionVolumes.removeAll { $0.timestamp < cutoffTime }
-            self.bidAskOptionPrices.removeAll { $0.timestamp < cutoffTime }
-        }
     }
 }
