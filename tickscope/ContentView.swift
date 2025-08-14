@@ -5,16 +5,42 @@ struct ContentView: View {
     @State private var optionTicker: String = "NVDA250328C00131000"
     @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
+    @State private var savedTickers: [String] = UserDefaults.standard.stringArray(forKey: "savedTickers") ?? []
 
     var body: some View {
         ScrollView(.vertical) {
             HStack(alignment: .top, spacing: 20) {
                 // Left column
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(displayedTitle)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .frame(height: 30)
+                    HStack(spacing: 10) {
+                        Text(displayedTitle)
+                            .font(.title)
+                            .fontWeight(.bold)
+
+                        Menu("Saved") {
+                            if savedTickers.isEmpty {
+                                Text("No saved tickers")
+                            } else {
+                                ForEach(savedTickers, id: \.self) { ticker in
+                                    HStack {
+                                        Button(ticker) {
+                                            scopeTicker(ticker)
+                                        }
+                                        Button(action: { removeSavedTicker(ticker) }) {
+                                            Image(systemName: "xmark")
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
+                                    }
+                                }
+                            }
+                        }
+
+                        Button("Save it") {
+                            saveCurrentTicker()
+                        }
+                        .disabled(optionTicker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || savedTickers.contains(optionTicker.uppercased()))
+                    }
+                    .frame(height: 30)
 
                     StockPriceChartView(webSocketManager: webSocketManager)
                         .frame(height: 250)
@@ -40,11 +66,7 @@ struct ContentView: View {
                 // Right column
                 VStack(alignment: .trailing, spacing: 20) {
                     TickerEntryView(ticker: $optionTicker) {
-                        let uppercaseTicker = optionTicker.uppercased()
-                        let stockTicker = extractStockSymbol(from: uppercaseTicker)
-                        webSocketManager.connect(stockTicker: stockTicker, optionTicker: uppercaseTicker)
-                        isTracking = true
-                        displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
+                        scopeTicker(optionTicker)
                     }
 
                     OptionPriceChartView(webSocketManager: webSocketManager)
@@ -72,7 +94,28 @@ struct ContentView: View {
             .padding(.vertical, 15)
         }
     }
-    
+
+    func scopeTicker(_ ticker: String) {
+        let uppercaseTicker = ticker.uppercased()
+        let stockTicker = extractStockSymbol(from: uppercaseTicker)
+        webSocketManager.connect(stockTicker: stockTicker, optionTicker: uppercaseTicker)
+        isTracking = true
+        displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
+        optionTicker = uppercaseTicker
+    }
+
+    func saveCurrentTicker() {
+        let ticker = optionTicker.uppercased()
+        guard !ticker.isEmpty, !savedTickers.contains(ticker) else { return }
+        savedTickers.append(ticker)
+        UserDefaults.standard.set(savedTickers, forKey: "savedTickers")
+    }
+
+    func removeSavedTicker(_ ticker: String) {
+        savedTickers.removeAll { $0 == ticker }
+        UserDefaults.standard.set(savedTickers, forKey: "savedTickers")
+    }
+
     func extractStockSymbol(from optionTicker: String) -> String {
         let letters = optionTicker.prefix { $0.isLetter }
         return String(letters)
