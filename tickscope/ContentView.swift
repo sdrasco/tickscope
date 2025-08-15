@@ -109,36 +109,36 @@ struct ContentView: View {
         let letters = optionTicker.prefix { $0.isLetter }
         return String(letters)
     }
+}
 
-    func formatOptionDetails(from ticker: String) -> String {
-        let pattern = #"^([A-Z]+)(\d{6})([CP])(\d{8})$"#
-        let regex = try? NSRegularExpression(pattern: pattern)
-        let nsTicker = ticker as NSString
+func formatOptionDetails(from ticker: String) -> String {
+    let pattern = #"^([A-Z]+)(\d{6})([CP])(\d{8})$"#
+    let regex = try? NSRegularExpression(pattern: pattern)
+    let nsTicker = ticker as NSString
 
-        guard let match = regex?.firstMatch(in: ticker, range: NSRange(location: 0, length: nsTicker.length)),
-              match.numberOfRanges == 5 else {
-            return ticker
-        }
-
-        let stock = nsTicker.substring(with: match.range(at: 1))
-        let dateString = nsTicker.substring(with: match.range(at: 2))
-        let type = nsTicker.substring(with: match.range(at: 3)) == "C" ? "Call" : "Put"
-        let strikeString = nsTicker.substring(with: match.range(at: 4))
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyMMdd"
-        guard let date = formatter.date(from: dateString) else {
-            return ticker
-        }
-        formatter.dateFormat = "d MMMM yyyy"
-        let formattedDate = formatter.string(from: date)
-
-        let strikeValue = (Double(strikeString) ?? 0) / 1000.0
-        let formattedStrike = strikeValue.truncatingRemainder(dividingBy: 1) == 0 ?
-            String(format: "$%.0f", strikeValue) : String(format: "$%.2f", strikeValue)
-
-        return "\(stock) \(type) at \(formattedStrike) expiring \(formattedDate)"
+    guard let match = regex?.firstMatch(in: ticker, range: NSRange(location: 0, length: nsTicker.length)),
+          match.numberOfRanges == 5 else {
+        return ticker
     }
+
+    let stock = nsTicker.substring(with: match.range(at: 1))
+    let dateString = nsTicker.substring(with: match.range(at: 2))
+    let type = nsTicker.substring(with: match.range(at: 3)) == "C" ? "Call" : "Put"
+    let strikeString = nsTicker.substring(with: match.range(at: 4))
+
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyMMdd"
+    guard let date = formatter.date(from: dateString) else {
+        return ticker
+    }
+    formatter.dateFormat = "d MMMM yyyy"
+    let formattedDate = formatter.string(from: date)
+
+    let strikeValue = (Double(strikeString) ?? 0) / 1000.0
+    let formattedStrike = strikeValue.truncatingRemainder(dividingBy: 1) == 0 ?
+        String(format: "$%.0f", strikeValue) : String(format: "$%.2f", strikeValue)
+
+    return "\(stock) \(type) at \(formattedStrike) expiring \(formattedDate)"
 }
 
 #Preview {

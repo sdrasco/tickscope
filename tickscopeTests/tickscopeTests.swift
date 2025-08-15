@@ -11,15 +11,13 @@ import XCTest
 final class TickscopeTests: XCTestCase {
 
     func testFormatOptionDetailsValid() {
-        let view = ContentView()
-        let result = view.formatOptionDetails(from: "AAPL240621C00125000")
+        let result = formatOptionDetails(from: "AAPL240621C00125000")
         XCTAssertEqual(result, "AAPL Call at $125 expiring 21 June 2024")
     }
 
     func testFormatOptionDetailsInvalid() {
-        let view = ContentView()
         let input = "INVALID"
-        XCTAssertEqual(view.formatOptionDetails(from: input), input)
+        XCTAssertEqual(formatOptionDetails(from: input), input)
     }
 
     func testExtractStockSymbol() {
