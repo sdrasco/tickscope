@@ -14,6 +14,7 @@ struct HistoryView: View {
             }
             .navigationTitle("History")
             .toolbar {
+#if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") {
                         dismiss()
@@ -27,6 +28,21 @@ struct HistoryView: View {
                         }
                     }
                 }
+#else
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    if !historyTickers.isEmpty {
+                        Button("Clear All") {
+                            historyTickers.removeAll()
+                            UserDefaults.standard.set(historyTickers, forKey: "historyTickers")
+                        }
+                    }
+                }
+#endif
             }
         }
     }
