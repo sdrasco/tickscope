@@ -12,35 +12,9 @@ struct ContentView: View {
             HStack(alignment: .top, spacing: 20) {
                 // Left column
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(spacing: 10) {
-                        Text(displayedTitle)
-                            .font(.title)
-                            .fontWeight(.bold)
-
-                        Menu("Saved") {
-                            if savedTickers.isEmpty {
-                                Text("No saved tickers")
-                            } else {
-                                ForEach(savedTickers, id: \.self) { ticker in
-                                    HStack {
-                                        Button(ticker) {
-                                            scopeTicker(ticker)
-                                        }
-                                        Button(action: { removeSavedTicker(ticker) }) {
-                                            Image(systemName: "xmark")
-                                        }
-                                        .buttonStyle(BorderlessButtonStyle())
-                                    }
-                                }
-                            }
-                        }
-
-                        Button("Save it") {
-                            saveCurrentTicker()
-                        }
-                        .disabled(optionTicker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || savedTickers.contains(optionTicker.uppercased()))
-                    }
-                    .frame(height: 30)
+                    Text(displayedTitle)
+                        .font(.title)
+                        .fontWeight(.bold)
 
                     StockPriceChartView(webSocketManager: webSocketManager)
                         .frame(height: 250)
@@ -68,6 +42,32 @@ struct ContentView: View {
                     TickerEntryView(ticker: $optionTicker) {
                         scopeTicker(optionTicker)
                     }
+
+                    HStack(spacing: 10) {
+                        Menu("Saved") {
+                            if savedTickers.isEmpty {
+                                Text("No saved tickers")
+                            } else {
+                                ForEach(savedTickers, id: \.self) { ticker in
+                                    HStack {
+                                        Button(ticker) {
+                                            scopeTicker(ticker)
+                                        }
+                                        Button(action: { removeSavedTicker(ticker) }) {
+                                            Image(systemName: "xmark")
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
+                                    }
+                                }
+                            }
+                        }
+
+                        Button("Save it") {
+                            saveCurrentTicker()
+                        }
+                        .disabled(optionTicker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || savedTickers.contains(optionTicker.uppercased()))
+                    }
+                    .frame(height: 30)
 
                     OptionPriceChartView(webSocketManager: webSocketManager)
                         .frame(height: 250)
