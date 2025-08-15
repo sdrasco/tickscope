@@ -1,11 +1,3 @@
-//
-//  HistoryView.swift
-//  tickscope
-//
-//  Created by sdrasco on 15/08/2025.
-//
-
-
 import SwiftUI
 
 struct HistoryView: View {
@@ -48,3 +40,4 @@ struct HistoryView: View {
 #Preview {
     HistoryView(historyTickers: .constant(["AAPL", "MSFT"]))
 }
+
