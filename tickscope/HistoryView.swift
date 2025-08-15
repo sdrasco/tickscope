@@ -17,7 +17,7 @@ struct HistoryView: View {
                             onSelect?(ticker)
                             dismiss()
                         } label: {
-                            Label(ticker, systemImage: "clock")
+                            Label(formatOptionDetails(from: ticker), systemImage: "clock")
                         }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
@@ -47,7 +47,7 @@ struct HistoryView: View {
             }
         }
         // Ensure the sheet has a reasonable size on macOS
-        .frame(minWidth: 300, minHeight: 400)
+        .frame(minWidth: 600, minHeight: 800)
     }
 
     private func deleteTicker(_ ticker: String) {
