@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
     @State private var historyTickers: [String] = UserDefaults.standard.stringArray(forKey: "historyTickers") ?? []
+    @State private var showHistory: Bool = false
 
     var body: some View {
         ScrollView(.vertical) {
@@ -16,22 +17,8 @@ struct ContentView: View {
                         .fontWeight(.bold)
                         .scaleEffect(0.5, anchor: .leading)
                     Spacer()
-                    Menu("History") {
-                        if historyTickers.isEmpty {
-                            Text("No history")
-                        } else {
-                            ForEach(historyTickers, id: \.self) { ticker in
-                                HStack {
-                                    Button(action: { scopeTicker(ticker) }) {
-                                        Text(formatOptionDetails(from: ticker))
-                                    }
-                                    Button(action: { removeHistoryTicker(ticker) }) {
-                                        Image(systemName: "xmark")
-                                    }
-                                    .buttonStyle(BorderlessButtonStyle())
-                                }
-                            }
-                        }
+                    Button("History") {
+                        showHistory = true
                     }
 
                     TextField("Option Ticker", text: $optionTicker)
@@ -96,6 +83,9 @@ struct ContentView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 15)
         }
+        .sheet(isPresented: $showHistory) {
+            HistoryView(historyTickers: $historyTickers)
+        }
     }
 
     func scopeTicker(_ ticker: String) {
@@ -110,11 +100,6 @@ struct ContentView: View {
             historyTickers.append(uppercaseTicker)
             UserDefaults.standard.set(historyTickers, forKey: "historyTickers")
         }
-    }
-
-    func removeHistoryTicker(_ ticker: String) {
-        historyTickers.removeAll { $0 == ticker }
-        UserDefaults.standard.set(historyTickers, forKey: "historyTickers")
     }
 
     func extractStockSymbol(from optionTicker: String) -> String {
