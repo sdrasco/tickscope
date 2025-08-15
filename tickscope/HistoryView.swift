@@ -46,6 +46,8 @@ struct HistoryView: View {
                 }
             }
         }
+        // Ensure the sheet has a reasonable size on macOS
+        .frame(minWidth: 300, minHeight: 400)
     }
 
     private func deleteTicker(_ ticker: String) {
