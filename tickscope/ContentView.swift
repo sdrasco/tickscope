@@ -5,89 +5,92 @@ struct ContentView: View {
     @State private var optionTicker: String = "NVDA250328C00131000"
     @State private var isTracking: Bool = false
     @State private var displayedTitle: String = "Tickscope"
-    @State private var savedTickers: [String] = UserDefaults.standard.stringArray(forKey: "savedTickers") ?? []
+    @State private var historyTickers: [String] = UserDefaults.standard.stringArray(forKey: "historyTickers") ?? []
 
     var body: some View {
         ScrollView(.vertical) {
-            HStack(alignment: .top, spacing: 20) {
-                // Left column
-                VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(spacing: 10) {
                     Text(displayedTitle)
                         .font(.title)
                         .fontWeight(.bold)
-
-                    StockPriceChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-
-                    BidAskStockChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-
-                    VolumeStockChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-
+                        .scaleEffect(0.5, anchor: .leading)
                     Spacer()
-                }
-
-                // Right column
-                VStack(alignment: .trailing, spacing: 20) {
-                    TickerEntryView(ticker: $optionTicker) {
-                        scopeTicker(optionTicker)
-                    }
-
-                    HStack(spacing: 10) {
-                        Menu("Saved") {
-                            if savedTickers.isEmpty {
-                                Text("No saved tickers")
-                            } else {
-                                ForEach(savedTickers, id: \.self) { ticker in
-                                    HStack {
-                                        Button(ticker) {
-                                            scopeTicker(ticker)
-                                        }
-                                        Button(action: { removeSavedTicker(ticker) }) {
-                                            Image(systemName: "xmark")
-                                        }
-                                        .buttonStyle(BorderlessButtonStyle())
+                    Menu("History") {
+                        if historyTickers.isEmpty {
+                            Text("No history")
+                        } else {
+                            ForEach(historyTickers, id: \.self) { ticker in
+                                HStack {
+                                    Button(ticker) {
+                                        scopeTicker(ticker)
                                     }
+                                    Button(action: { removeHistoryTicker(ticker) }) {
+                                        Image(systemName: "xmark")
+                                    }
+                                    .buttonStyle(BorderlessButtonStyle())
                                 }
                             }
                         }
-
-                        Button("Save it") {
-                            saveCurrentTicker()
-                        }
-                        .disabled(optionTicker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || savedTickers.contains(optionTicker.uppercased()))
                     }
-                    .frame(height: 30)
 
-                    OptionPriceChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    TextField("Option Ticker", text: $optionTicker)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 200)
 
-                    BidAskOptionChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    Button("Scope it") {
+                        scopeTicker(optionTicker)
+                    }
+                    .disabled(optionTicker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .frame(height: 30)
 
-                    VolumeOptionChartView(webSocketManager: webSocketManager)
-                        .frame(height: 250)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                HStack(alignment: .top, spacing: 20) {
+                    // Left column
+                    VStack(alignment: .leading, spacing: 20) {
+                        StockPriceChartView(webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
-                    Spacer()
+                        BidAskStockChartView(webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
+                        VolumeStockChartView(webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
+                        Spacer()
+                    }
+
+                    // Right column
+                    VStack(alignment: .trailing, spacing: 20) {
+                        OptionPriceChartView(webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
+                        BidAskOptionChartView(webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
+                        VolumeOptionChartView(webSocketManager: webSocketManager)
+                            .frame(height: 250)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+
+                        Spacer()
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -100,20 +103,18 @@ struct ContentView: View {
         let stockTicker = extractStockSymbol(from: uppercaseTicker)
         webSocketManager.connect(stockTicker: stockTicker, optionTicker: uppercaseTicker)
         isTracking = true
-        displayedTitle = "Tickscope: \(formatOptionDetails(from: uppercaseTicker))"
+        displayedTitle = formatOptionDetails(from: uppercaseTicker)
         optionTicker = uppercaseTicker
+
+        if !historyTickers.contains(uppercaseTicker) {
+            historyTickers.append(uppercaseTicker)
+            UserDefaults.standard.set(historyTickers, forKey: "historyTickers")
+        }
     }
 
-    func saveCurrentTicker() {
-        let ticker = optionTicker.uppercased()
-        guard !ticker.isEmpty, !savedTickers.contains(ticker) else { return }
-        savedTickers.append(ticker)
-        UserDefaults.standard.set(savedTickers, forKey: "savedTickers")
-    }
-
-    func removeSavedTicker(_ ticker: String) {
-        savedTickers.removeAll { $0 == ticker }
-        UserDefaults.standard.set(savedTickers, forKey: "savedTickers")
+    func removeHistoryTicker(_ ticker: String) {
+        historyTickers.removeAll { $0 == ticker }
+        UserDefaults.standard.set(historyTickers, forKey: "historyTickers")
     }
 
     func extractStockSymbol(from optionTicker: String) -> String {
