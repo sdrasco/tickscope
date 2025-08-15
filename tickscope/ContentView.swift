@@ -84,7 +84,10 @@ struct ContentView: View {
             .padding(.vertical, 15)
         }
         .sheet(isPresented: $showHistory) {
-            HistoryView(historyTickers: $historyTickers)
+            HistoryView(historyTickers: $historyTickers) { ticker in
+                optionTicker = ticker
+                scopeTicker(ticker)
+            }
         }
     }
 
