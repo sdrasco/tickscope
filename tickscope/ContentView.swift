@@ -22,8 +22,8 @@ struct ContentView: View {
                         } else {
                             ForEach(historyTickers, id: \.self) { ticker in
                                 HStack {
-                                    Button(ticker) {
-                                        scopeTicker(ticker)
+                                    Button(action: { scopeTicker(ticker) }) {
+                                        Text(formatOptionDetails(from: ticker))
                                     }
                                     Button(action: { removeHistoryTicker(ticker) }) {
                                         Image(systemName: "xmark")
@@ -142,7 +142,7 @@ struct ContentView: View {
         guard let date = formatter.date(from: dateString) else {
             return ticker
         }
-        formatter.dateFormat = "d MMM yyyy"
+        formatter.dateFormat = "d MMMM yyyy"
         let formattedDate = formatter.string(from: date)
 
         let strikeValue = (Double(strikeString) ?? 0) / 1000.0

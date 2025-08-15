@@ -13,7 +13,7 @@ final class TickscopeTests: XCTestCase {
     func testFormatOptionDetailsValid() {
         let view = ContentView()
         let result = view.formatOptionDetails(from: "AAPL240621C00125000")
-        XCTAssertEqual(result, "AAPL Call at $125 expiring 21 Jun 2024")
+        XCTAssertEqual(result, "AAPL Call at $125 expiring 21 June 2024")
     }
 
     func testFormatOptionDetailsInvalid() {
